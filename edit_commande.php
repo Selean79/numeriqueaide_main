@@ -18,83 +18,132 @@ $stmt->execute([':id' => $id]);
 $order = $stmt->fetch();
 
 if (!$order) {
-    die("Заказ не найден.");
+    die("Commande introuvable.");
 }
 
 $error = '';
 
-// Обработка формы
+// Значения формы
+$form = [
+        'id_commande'       => $order['id_commande'] ?? '',
+        'client_id'         => $order['client_id'] ?? '',
+        'platform_id'       => $order['platform_id'] ?? '',
+        'payment_method_id' => $order['payment_method_id'] ?? '',
+        'facture_id'        => $order['facture_id'] ?? '',
+        'date_commande'     => !empty($order['date_commande'])
+                ? date('d/m/Y', strtotime($order['date_commande']))
+                : '',
+        'date_paiement'     => !empty($order['date_paiement'])
+                ? date('d/m/Y', strtotime($order['date_paiement']))
+                : '',
+        'montant'           => $order['montant'] ?? '',
+        'statut'            => $order['statut'] ?? 'Prévu',
+        'commentaire'       => $order['commentaire'] ?? '',
+        'notes'             => $order['notes'] ?? '',
+        'calcul_impot'      => !empty($order['calcul_impot']),
+        'calcul_epargne'    => !empty($order['calcul_epargne']),
+        'impot_paye'        => !empty($order['impot_paye']),
+        'epargne_paye'      => !empty($order['epargne_paye'])
+];
+
+// ======================================================
+// ОБРАБОТКА ФОРМЫ
+// ======================================================
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $id_commande         = trim($_POST['id_commande'] ?? $order['id_commande']);
-    $client_id           = !empty($_POST['client_id']) ? (int)$_POST['client_id'] : null;
-    $platform_id         = !empty($_POST['platform_id']) ? (int)$_POST['platform_id'] : null;
-    $payment_method_id   = !empty($_POST['payment_method_id']) ? (int)$_POST['payment_method_id'] : null;
-    $facture_id          = !empty($_POST['facture_id']) ? (int)$_POST['facture_id'] : null;
-    $date_commande       = $_POST['date_commande'] ?? date('Y-m-d');
-    $date_paiement       = !empty($_POST['date_paiement']) ? $_POST['date_paiement'] : null;
-    $montant             = (float)str_replace(',', '.', $_POST['montant'] ?? 0);
-    $statut              = $_POST['statut'] ?? 'Prévu';
-    $commentaire         = trim($_POST['commentaire'] ?? '');
-    $notes               = trim($_POST['notes'] ?? '');
 
-    // Расчет сумм
-    $calcul_impot_flag   = isset($_POST['calcul_impot']) ? 1 : 0;
-    $calcul_epargne_flag = isset($_POST['calcul_epargne']) ? 1 : 0;
+    $form['id_commande'] = trim($_POST['id_commande'] ?? '');
+    $form['client_id'] = !empty($_POST['client_id']) ? (int)$_POST['client_id'] : '';
+    $form['platform_id'] = !empty($_POST['platform_id']) ? (int)$_POST['platform_id'] : '';
+    $form['payment_method_id'] = !empty($_POST['payment_method_id']) ? (int)$_POST['payment_method_id'] : '';
+    $form['facture_id'] = !empty($_POST['facture_id']) ? (int)$_POST['facture_id'] : '';
 
-    $calcul_impot   = $calcul_impot_flag ? ($montant * 0.212) : 0;
-    $calcul_epargne = $calcul_epargne_flag ? ($montant * 0.10) : 0;
+    $form['date_commande'] = trim($_POST['date_commande'] ?? '');
+    $form['date_paiement'] = trim($_POST['date_paiement'] ?? '');
+    $form['montant'] = trim($_POST['montant'] ?? '');
+    $form['statut'] = $_POST['statut'] ?? 'Prévu';
+    $form['commentaire'] = trim($_POST['commentaire'] ?? '');
+    $form['notes'] = trim($_POST['notes'] ?? '');
 
-    // Чекбоксы уплаты налога и накоплений
-    $impot_paye   = isset($_POST['impot_paye']) ? 1 : 0;
-    $epargne_paye = isset($_POST['epargne_paye']) ? 1 : 0;
+    $form['calcul_impot'] = isset($_POST['calcul_impot']);
+    $form['calcul_epargne'] = isset($_POST['calcul_epargne']);
+    $form['impot_paye'] = isset($_POST['impot_paye']);
+    $form['epargne_paye'] = isset($_POST['epargne_paye']);
+
+    // Конвертация даты заказа
+    $date_commande = date('Y-m-d');
+    if (preg_match('/^(\d{2})\/(\d{2})\/(\d{4})$/', $form['date_commande'], $matches)) {
+        $day = (int)$matches[1];
+        $month = (int)$matches[2];
+        $year = (int)$matches[3];
+        if (checkdate($month, $day, $year)) {
+            $date_commande = sprintf('%04d-%02d-%02d', $year, $month, $day);
+        }
+    }
+
+    // Конвертация даты оплаты
+    $date_paiement = null;
+    if ($form['date_paiement'] !== '') {
+        if (preg_match('/^(\d{2})\/(\d{2})\/(\d{4})$/', $form['date_paiement'], $matches)) {
+            $day = (int)$matches[1];
+            $month = (int)$matches[2];
+            $year = (int)$matches[3];
+            if (checkdate($month, $day, $year)) {
+                $date_paiement = sprintf('%04d-%02d-%02d', $year, $month, $day);
+            }
+        }
+    }
+
+    $montant = (float)str_replace(',', '.', $form['montant']);
+
+    // Расчет налогов
+    $calcul_impot = $form['calcul_impot'] ? ($montant * 0.212) : 0;
+    $calcul_epargne = $form['calcul_epargne'] ? ($montant * 0.10) : 0;
+    $impot_paye = $form['impot_paye'] ? 1 : 0;
+    $epargne_paye = $form['epargne_paye'] ? 1 : 0;
 
     try {
         $updateSql = "
             UPDATE commandes 
-            SET id_commande         = :id_commande,
-                client_id           = :client_id,
-                platform_id         = :platform_id,
-                payment_method_id   = :payment_method_id,
-                facture_id          = :facture_id,
-                date_commande       = :date_commande,
-                date_paiement       = :date_paiement,
-                montant             = :montant,
-                statut              = :statut,
-                calcul_impot        = :calcul_impot,
-                calcul_epargne      = :calcul_epargne,
-                impot_paye          = :impot_paye,
-                epargne_paye        = :epargne_paye,
-                commentaire         = :commentaire,
-                notes               = :notes
+            SET
+                id_commande       = :id_commande,
+                client_id         = :client_id,
+                platform_id       = :platform_id,
+                payment_method_id = :payment_method_id,
+                facture_id        = :facture_id,
+                date_commande     = :date_commande,
+                date_paiement     = :date_paiement,
+                montant           = :montant,
+                statut            = :statut,
+                calcul_impot      = :calcul_impot,
+                calcul_epargne    = :calcul_epargne,
+                impot_paye        = :impot_paye,
+                epargne_paye      = :epargne_paye,
+                commentaire       = :commentaire,
+                notes             = :notes
             WHERE id = :id
         ";
 
         $updateStmt = $pdo->prepare($updateSql);
         $updateStmt->execute([
-                ':id_commande'       => $id_commande,
-                ':client_id'         => $client_id,
-                ':platform_id'       => $platform_id,
-                ':payment_method_id' => $payment_method_id,
-                ':facture_id'        => $facture_id,
+                ':id_commande'       => $form['id_commande'],
+                ':client_id'         => $form['client_id'],
+                ':platform_id'       => $form['platform_id'],
+                ':payment_method_id' => $form['payment_method_id'],
+                ':facture_id'        => $form['facture_id'] ?: null,
                 ':date_commande'     => $date_commande,
                 ':date_paiement'     => $date_paiement,
                 ':montant'           => $montant,
-                ':statut'            => $statut,
+                ':statut'            => $form['statut'],
                 ':calcul_impot'      => $calcul_impot,
                 ':calcul_epargne'    => $calcul_epargne,
                 ':impot_paye'        => $impot_paye,
                 ':epargne_paye'      => $epargne_paye,
-                ':commentaire'       => $commentaire,
-                ':notes'             => $notes,
+                ':commentaire'       => $form['commentaire'],
+                ':notes'             => $form['notes'],
                 ':id'                => $order['id']
         ]);
 
-        //header("Location: commandes_list.php?updated=1");
-        //exit;
-//        header("Location: commandes_list.php?updated=1#order-" . $order['id']);
-//        exit;
-
-        // Перенаправляем туда, откуда пришли (с сохранением якоря на заказ, если возвращаемся в список)
         if (!empty($_POST['return'])) {
             header("Location: " . $_POST['return']);
         } else {
@@ -103,7 +152,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
 
     } catch (PDOException $e) {
-        $error = "Ошибка обновления заказа: " . $e->getMessage();
+        $error = "Erreur lors de la mise à jour de la commande : " . $e->getMessage();
     }
 }
 
@@ -118,7 +167,6 @@ $pmCols = $pdo->query("SHOW COLUMNS FROM modes_de_paiement")->fetchAll(PDO::FETC
 $pmColName = in_array('nom', $pmCols) ? 'nom' : (in_array('name', $pmCols) ? 'name' : $pmCols[1]);
 $payment_methods = $pdo->query("SELECT id, `$pmColName` AS name FROM modes_de_paiement ORDER BY `$pmColName` ASC")->fetchAll();
 
-// Загрузка списка счетов (factures)
 $facturesCols = $pdo->query("SHOW COLUMNS FROM factures")->fetchAll(PDO::FETCH_COLUMN);
 $factureNumCol = in_array('facture_number', $facturesCols) ? 'facture_number' : (in_array('numero', $facturesCols) ? 'numero' : $facturesCols[1]);
 $factures = $pdo->query("SELECT id, `$factureNumCol` AS facture_num FROM factures ORDER BY id DESC")->fetchAll();
@@ -126,37 +174,59 @@ $factures = $pdo->query("SELECT id, `$factureNumCol` AS facture_num FROM facture
 require_once 'header.php';
 ?>
 
-<title>Редактировать заказ #<?= htmlspecialchars($order['id_commande']); ?> — NumériqueAide</title>
+<title>Modifier la commande #<?= htmlspecialchars($order['id_commande']); ?> — NumériqueAide</title>
+
+<!-- Flatpickr CSS -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+
+<style>
+    /* Затемненный фон всей страницы для контраста */
+    body {
+        background-color: #cbd5e1 !important;
+    }
+    .required-star {
+        color: #dc3545;
+        font-weight: bold;
+    }
+</style>
 
 <div class="container mt-4 mb-5" style="max-width: 800px;">
-    <div class="card shadow-sm border-0">
+    <div class="card shadow border-0">
         <div class="card-header bg-warning bg-gradient text-dark d-flex justify-content-between align-items-center">
-            <h5 class="mb-0 fw-bold"><i class="bi bi-pencil-square me-2"></i>Редактировать заказ #<?= htmlspecialchars($order['id_commande']); ?></h5>
-            <a href="commandes_list.php" class="btn btn-sm btn-outline-dark">К списку заказов</a>
+            <h5 class="mb-0 fw-bold">
+                <i class="bi bi-pencil-square me-2"></i>Modifier la commande #<?= htmlspecialchars($order['id_commande']); ?>
+            </h5>
+            <a href="commandes_list.php" class="btn btn-sm btn-outline-dark">Liste des commandes</a>
         </div>
         <div class="card-body p-4">
 
             <?php if (!empty($error)): ?>
-                <div class="alert alert-danger"><?= htmlspecialchars($error); ?></div>
+                <div class="alert alert-danger" role="alert">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i><?= htmlspecialchars($error); ?>
+                </div>
             <?php endif; ?>
 
-            <form method="POST">
+            <form method="POST" id="commandeForm">
+
                 <div class="row g-3 mb-3">
                     <div class="col-md-6">
-                        <label class="form-label fw-semibold">Номер заказа (ID) *</label>
-                        <input type="text" name="id_commande" class="form-control" value="<?= htmlspecialchars($order['id_commande']); ?>" required>
+                        <label class="form-label fw-semibold">
+                            Numéro de commande (ID) <span class="required-star">*</span>
+                        </label>
+                        <input type="text" name="id_commande" class="form-control" value="<?= htmlspecialchars($form['id_commande']); ?>" required oninvalid="this.setCustomValidity('Veuillez remplir ce champ.')" oninput="this.setCustomValidity('')">
                     </div>
 
                     <div class="col-md-6">
-                        <label class="form-label fw-semibold">Клиент</label>
-                        <select name="client_id" class="form-select">
-                            <option value="">-- Выберите клиента --</option>
+                        <label class="form-label fw-semibold">
+                            Client <span class="required-star">*</span>
+                        </label>
+                        <select name="client_id" class="form-select" required oninvalid="this.setCustomValidity('Veuillez sélectionner un client.')" oninput="this.setCustomValidity('')">
+                            <option value="">-- Choisir un client --</option>
                             <?php foreach ($clients as $client): ?>
-                                <?php
-                                $clientName = trim(($client['nom'] ?? '') . ' ' . ($client['prenom'] ?? ''));
-                                $selected = ($client['id'] == $order['client_id']) ? 'selected' : '';
-                                ?>
-                                <option value="<?= $client['id']; ?>" <?= $selected; ?>><?= htmlspecialchars($clientName); ?></option>
+                                <?php $clientName = trim(($client['nom'] ?? '') . ' ' . ($client['prenom'] ?? '')); ?>
+                                <option value="<?= $client['id']; ?>" <?= ((string)$client['id'] === (string)$form['client_id']) ? 'selected' : ''; ?>>
+                                    <?= htmlspecialchars($clientName); ?>
+                                </option>
                             <?php endforeach; ?>
                         </select>
                     </div>
@@ -164,34 +234,40 @@ require_once 'header.php';
 
                 <div class="row g-3 mb-3">
                     <div class="col-md-4">
-                        <label class="form-label fw-semibold">Дата заказа</label>
-                        <input type="date" name="date_commande" class="form-control" value="<?= htmlspecialchars($order['date_commande']); ?>">
+                        <label class="form-label fw-semibold">
+                            Date de commande <span class="required-star">*</span>
+                        </label>
+                        <input type="text" name="date_commande" class="form-control js-date-picker" placeholder="jj/mm/aaaa" value="<?= htmlspecialchars($form['date_commande']); ?>" required oninvalid="this.setCustomValidity('Veuillez indiquer la date de commande.')" oninput="this.setCustomValidity('')">
                     </div>
 
                     <div class="col-md-4">
-                        <label class="form-label fw-semibold">Сумма (€) *</label>
-                        <input type="number" step="0.01" name="montant" class="form-control" value="<?= htmlspecialchars($order['montant']); ?>" required>
+                        <label class="form-label fw-semibold">
+                            Montant (€) <span class="required-star">*</span>
+                        </label>
+                        <input type="number" step="0.01" min="0.01" name="montant" class="form-control" value="<?= htmlspecialchars($form['montant']); ?>" required oninvalid="this.setCustomValidity('Veuillez saisir un montant supérieur à 0.')" oninput="this.setCustomValidity('')">
                     </div>
 
                     <div class="col-md-4">
-                        <label class="form-label fw-semibold">Статус</label>
-                        <?php $st = mb_strtolower(trim($order['statut'] ?? '')); ?>
+                        <label class="form-label fw-semibold">Statut</label>
+                        <?php $st = mb_strtolower(trim($form['statut'] ?? '')); ?>
                         <select name="statut" class="form-select">
-                            <option value="Prévu" <?= ($st === 'prévu' || $st === 'prevu') ? 'selected' : ''; ?>>Запланирован (Prévu)</option>
-                            <option value="En cours" <?= ($st === 'en cours' || $st === 'en_cours' || $st === 'en travail' || $st === 'в работе') ? 'selected' : ''; ?>>В работе (En cours)</option>
-                            <option value="Payé" <?= ($st === 'payé' || $st === 'paye' || $st === 'terminee') ? 'selected' : ''; ?>>Оплачен (Payé)</option>
-                            <option value="Annulée" <?= ($st === 'annulée' || $st === 'annulee') ? 'selected' : ''; ?>>Отменен (Annulée)</option>
+                            <option value="Prévu" <?= ($st === 'prévu' || $st === 'prevu') ? 'selected' : ''; ?>>Prévu</option>
+                            <option value="En cours" <?= ($st === 'en cours' || $st === 'en_cours' || $st === 'en travail' || $st === 'в работе') ? 'selected' : ''; ?>>En cours</option>
+                            <option value="Payé" <?= ($st === 'payé' || $st === 'paye' || $st === 'terminee') ? 'selected' : ''; ?>>Payé</option>
+                            <option value="Annulée" <?= ($st === 'annulée' || $st === 'annulee') ? 'selected' : ''; ?>>Annulée</option>
                         </select>
                     </div>
                 </div>
 
                 <div class="row g-3 mb-3">
                     <div class="col-md-3">
-                        <label class="form-label fw-semibold">Платформа / Сервис</label>
-                        <select name="platform_id" class="form-select">
-                            <option value="">-- Не указана --</option>
+                        <label class="form-label fw-semibold">
+                            Plateforme / Service <span class="required-star">*</span>
+                        </label>
+                        <select name="platform_id" class="form-select" required oninvalid="this.setCustomValidity('Veuillez sélectionner une plateforme ou un service.')" oninput="this.setCustomValidity('')">
+                            <option value="">-- Non spécifiée --</option>
                             <?php foreach ($platforms as $p): ?>
-                                <option value="<?= $p['id']; ?>" <?= ($p['id'] == $order['platform_id']) ? 'selected' : ''; ?>>
+                                <option value="<?= $p['id']; ?>" <?= ((string)$p['id'] === (string)$form['platform_id']) ? 'selected' : ''; ?>>
                                     <?= htmlspecialchars($p['name']); ?>
                                 </option>
                             <?php endforeach; ?>
@@ -199,54 +275,54 @@ require_once 'header.php';
                     </div>
 
                     <div class="col-md-3">
-                        <label class="form-label fw-semibold">Способ оплаты</label>
-                        <select name="payment_method_id" class="form-select">
-                            <option value="">-- Не указан --</option>
+                        <label class="form-label fw-semibold">
+                            Mode de paiement <span class="required-star">*</span>
+                        </label>
+                        <select name="payment_method_id" class="form-select" required oninvalid="this.setCustomValidity('Veuillez sélectionner un mode de paiement.')" oninput="this.setCustomValidity('')">
+                            <option value="">-- Non spécifié --</option>
                             <?php foreach ($payment_methods as $pm): ?>
-                                <option value="<?= $pm['id']; ?>" <?= ($pm['id'] == $order['payment_method_id']) ? 'selected' : ''; ?>>
+                                <option value="<?= $pm['id']; ?>" <?= ((string)$pm['id'] === (string)$form['payment_method_id']) ? 'selected' : ''; ?>>
                                     <?= htmlspecialchars($pm['name']); ?>
                                 </option>
                             <?php endforeach; ?>
                         </select>
                     </div>
 
-                    <!-- Привязка к счету -->
                     <div class="col-md-3">
-                        <label class="form-label fw-semibold text-primary"><i class="bi bi-file-earmark-text me-1"></i>Счет (Facture)</label>
+                        <label class="form-label fw-semibold text-primary">
+                            <i class="bi bi-file-earmark-text me-1"></i>Facture
+                        </label>
                         <select name="facture_id" class="form-select border-primary">
-                            <option value="">-- Без счета --</option>
+                            <option value="">-- Sans facture --</option>
                             <?php foreach ($factures as $fac): ?>
-                                <option value="<?= $fac['id']; ?>" <?= ($fac['id'] == $order['facture_id']) ? 'selected' : ''; ?>>
-                                    Счет #<?= htmlspecialchars($fac['facture_num']); ?>
+                                <option value="<?= $fac['id']; ?>" <?= ((string)$fac['id'] === (string)$form['facture_id']) ? 'selected' : ''; ?>>
+                                    Facture #<?= htmlspecialchars($fac['facture_num']); ?>
                                 </option>
                             <?php endforeach; ?>
                         </select>
                     </div>
 
                     <div class="col-md-3">
-                        <label class="form-label fw-semibold text-success">Дата оплаты</label>
-                        <input type="date" name="date_paiement" class="form-control" value="<?= htmlspecialchars($order['date_paiement'] ?? ''); ?>">
+                        <label class="form-label fw-semibold text-success">Date de paiement</label>
+                        <input type="text" name="date_paiement" class="form-control js-date-picker" placeholder="jj/mm/aaaa" value="<?= htmlspecialchars($form['date_paiement']); ?>">
                     </div>
                 </div>
 
-                <!-- Блок расчета и статуса уплаты -->
                 <div class="card bg-light border-0 mb-3">
                     <div class="card-body">
-                        <h6 class="fw-bold mb-3"><i class="bi bi-calculator me-1"></i>Расчет и оплата налогов / отчислений</h6>
+                        <h6 class="fw-bold mb-3"><i class="bi bi-calculator me-1"></i>Calcul et paiement des taxes / cotisations</h6>
 
                         <div class="row g-3 mb-2">
                             <div class="col-md-6">
                                 <div class="form-check form-switch">
-                                    <?php $hasImpot = (float)($order['calcul_impot'] ?? 0) > 0; ?>
-                                    <input class="form-check-input" type="checkbox" name="calcul_impot" id="calculImpot" value="1" <?= $hasImpot ? 'checked' : ''; ?>>
-                                    <label class="form-check-label fw-semibold" for="calculImpot">Рассчитывать налог URSSAF (21.2%)</label>
+                                    <input class="form-check-input" type="checkbox" name="calcul_impot" id="calculImpot" value="1" <?= $form['calcul_impot'] ? 'checked' : ''; ?>>
+                                    <label class="form-check-label fw-semibold" for="calculImpot">Calculer la taxe URSSAF (21.2%)</label>
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="form-check form-switch">
-                                    <?php $hasEpargne = (float)($order['calcul_epargne'] ?? 0) > 0; ?>
-                                    <input class="form-check-input" type="checkbox" name="calcul_epargne" id="calculEpargne" value="1" <?= $hasEpargne ? 'checked' : ''; ?>>
-                                    <label class="form-check-label fw-semibold" for="calculEpargne">Рассчитывать накопления (10%)</label>
+                                    <input class="form-check-input" type="checkbox" name="calcul_epargne" id="calculEpargne" value="1" <?= $form['calcul_epargne'] ? 'checked' : ''; ?>>
+                                    <label class="form-check-label fw-semibold" for="calculEpargne">Calculer l'épargne (10%)</label>
                                 </div>
                             </div>
                         </div>
@@ -256,14 +332,14 @@ require_once 'header.php';
                         <div class="row g-3 mt-1">
                             <div class="col-md-6">
                                 <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" name="impot_paye" id="impotPaye" value="1" <?= (!empty($order['impot_paye'])) ? 'checked' : ''; ?>>
-                                    <label class="form-check-label text-success fw-bold" for="impotPaye"><i class="bi bi-check-circle me-1"></i>Налог URSSAF ОПЛАЧЕН</label>
+                                    <input class="form-check-input" type="checkbox" name="impot_paye" id="impotPaye" value="1" <?= $form['impot_paye'] ? 'checked' : ''; ?>>
+                                    <label class="form-check-label text-success fw-bold" for="impotPaye"><i class="bi bi-check-circle me-1"></i>Taxe URSSAF PAYÉE</label>
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" name="epargne_paye" id="epargnePaye" value="1" <?= (!empty($order['epargne_paye'])) ? 'checked' : ''; ?>>
-                                    <label class="form-check-label text-success fw-bold" for="epargnePaye"><i class="bi bi-check-circle me-1"></i>Накопление ОТЧИСЛЕНО</label>
+                                    <input class="form-check-input" type="checkbox" name="epargne_paye" id="epargnePaye" value="1" <?= $form['epargne_paye'] ? 'checked' : ''; ?>>
+                                    <label class="form-check-label text-success fw-bold" for="epargnePaye"><i class="bi bi-check-circle me-1"></i>Épargne VERSÉE</label>
                                 </div>
                             </div>
                         </div>
@@ -271,18 +347,18 @@ require_once 'header.php';
                 </div>
 
                 <div class="mb-3">
-                    <label class="form-label fw-semibold">Комментарий к заказу</label>
-                    <textarea name="commentaire" class="form-control" rows="2" placeholder="Краткое описание работы..."><?= htmlspecialchars($order['commentaire'] ?? ''); ?></textarea>
+                    <label class="form-label fw-semibold">Commentaire de la commande</label>
+                    <textarea name="commentaire" class="form-control" rows="2" placeholder="Brève description du travail..."><?= htmlspecialchars($form['commentaire']); ?></textarea>
                 </div>
 
                 <div class="mb-4">
-                    <label class="form-label fw-semibold">Внутренние заметки (Notes)</label>
-                    <textarea name="notes" class="form-control" rows="2" placeholder="Заметки для себя..."><?= htmlspecialchars($order['notes'] ?? ''); ?></textarea>
+                    <label class="form-label fw-semibold">Notes internes</label>
+                    <textarea name="notes" class="form-control" rows="2" placeholder="Notes de service..."><?= htmlspecialchars($form['notes']); ?></textarea>
                 </div>
 
                 <div class="d-grid">
                     <button type="submit" class="btn btn-primary btn-lg">
-                        <i class="bi bi-check-circle me-1"></i> Сохранить изменения
+                        <i class="bi bi-check-circle me-1"></i> Enregistrer les modifications
                     </button>
                 </div>
             </form>
@@ -290,6 +366,18 @@ require_once 'header.php';
     </div>
 </div>
 
+<!-- Bootstrap JS -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<!-- Flatpickr JS -->
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        flatpickr(".js-date-picker", {
+            dateFormat: "d/m/Y",
+            allowInput: true
+        });
+    });
+</script>
+
 </body>
 </html>
