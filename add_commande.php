@@ -15,9 +15,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $platform_id       = !empty($_POST['platform_id']) ? (int)$_POST['platform_id'] : null;
     $payment_method_id = !empty($_POST['payment_method_id']) ? (int)$_POST['payment_method_id'] : null;
     $facture_id        = !empty($_POST['facture_id']) ? (int)$_POST['facture_id'] : null;
-    $montant           = !empty($_POST['montant']) ? str_replace(',', '.', $_POST['montant']) : 0;
+
+    $montant_raw       = trim($_POST['montant'] ?? '');
+    $montant           = str_replace(',', '.', $montant_raw);
+
     $statut            = trim($_POST['statut'] ?? 'Prévu');
-    $date_paiement     = !empty($_POST['date_paiement']) ? $_POST['date_paiement'] : null;
     $notes             = trim($_POST['notes'] ?? '');
     $commentaire       = trim($_POST['commentaire'] ?? '');
 
@@ -26,16 +28,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $impot_paye        = isset($_POST['impot_paye']) ? 1 : 0;
     $epargne_paye      = isset($_POST['epargne_paye']) ? 1 : 0;
 
-    if (!empty($montant) && !empty($date_commande)) {
+    // Validation des champs obligatoires et du format numérique en PHP
+    if (empty($client_id)) {
+        $error = "Veuillez sélectionner un client.";
+    } elseif ($montant_raw === '') {
+        $error = "Veuillez remplir le montant de la commande.";
+    } elseif (!is_numeric($montant)) {
+        $error = "Le montant doit être un nombre valide (ex: 45.50).";
+    } elseif (empty($platform_id)) {
+        $error = "Veuillez sélectionner une plateforme / service.";
+    } elseif (empty($payment_method_id)) {
+        $error = "Veuillez sélectionner un mode de paiement.";
+    } elseif (!empty($date_commande)) {
         try {
             $stmt = $pdo->prepare("
                 INSERT INTO commandes (
                     id_commande, date_commande, client_id, platform_id, payment_method_id, 
-                    facture_id, montant, statut, date_paiement, notes, commentaire, 
+                    facture_id, montant, statut, notes, commentaire, 
                     calcul_impot, calcul_epargne, impot_paye, epargne_paye
                 ) VALUES (
                     :id_commande, :date_commande, :client_id, :platform_id, :payment_method_id, 
-                    :facture_id, :montant, :statut, :date_paiement, :notes, :commentaire, 
+                    :facture_id, :montant, :statut, :notes, :commentaire, 
                     :calcul_impot, :calcul_epargne, :impot_paye, :epargne_paye
                 )
             ");
@@ -48,7 +61,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     ':facture_id'        => $facture_id,
                     ':montant'           => $montant,
                     ':statut'            => $statut,
-                    ':date_paiement'     => $date_paiement,
                     ':notes'             => $notes,
                     ':commentaire'       => $commentaire,
                     ':calcul_impot'      => $calcul_impot,
@@ -62,8 +74,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } catch (PDOException $e) {
             $error = "Erreur de base de données : " . $e->getMessage();
         }
-    } else {
-        $error = "Veuillez remplir les champs obligatoires (Montant, Date).";
     }
 }
 
@@ -100,17 +110,27 @@ require_once 'header.php';
 
 <title>Créer une commande — NumériqueAide</title>
 
-<div class="container mt-4" style="max-width: 800px;">
+<style>
+    body {
+        background-color: #e9ecef !important;
+    }
+    .card {
+        border: 1px solid #ced4da !important;
+        box-shadow: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.15) !important;
+    }
+</style>
+
+<div class="container mt-4 mb-5" style="max-width: 800px;">
     <?php if (!empty($error)): ?>
         <div class="alert alert-danger"><?= htmlspecialchars($error); ?></div>
     <?php endif; ?>
 
-    <div class="card shadow-sm border-0">
+    <div class="card border-0">
         <div class="card-header bg-success text-white py-3 d-flex justify-content-between align-items-center">
             <h5 class="mb-0 fw-bold"><i class="bi bi-cart-plus me-2"></i>Créer une nouvelle commande</h5>
             <a href="commandes_list.php" class="btn btn-sm btn-light text-success fw-semibold">Liste des commandes</a>
         </div>
-        <div class="card-body p-4">
+        <div class="card-body p-4 bg-white">
             <form method="POST">
                 <div class="row">
                     <div class="col-md-6 mb-3">
@@ -118,8 +138,10 @@ require_once 'header.php';
                         <input type="text" name="id_commande" class="form-control" value="<?= htmlspecialchars($next_order_id); ?>" required>
                     </div>
                     <div class="col-md-6 mb-3">
-                        <label class="form-label fw-semibold small text-muted">Client</label>
-                        <select name="client_id" class="form-select">
+                        <label class="form-label fw-semibold small text-muted">Client *</label>
+                        <select name="client_id" class="form-select" required
+                                oninvalid="this.setCustomValidity('Veuillez sélectionner un client.')"
+                                onchange="this.setCustomValidity('')">
                             <option value="">-- Sélectionner un client --</option>
                             <?php foreach ($clients as $client): ?>
                                 <option value="<?= $client['id']; ?>"><?= htmlspecialchars(trim($client['nom'] . ' ' . $client['prenom'])); ?></option>
@@ -136,7 +158,10 @@ require_once 'header.php';
                     <div class="col-md-4 mb-3">
                         <label class="form-label fw-semibold small text-muted">Montant (€) *</label>
                         <div class="input-group">
-                            <input type="text" name="montant" class="form-control" placeholder="0.00" required>
+                            <input type="text" name="montant" class="form-control" placeholder="0.00" required
+                                   pattern="[0-9]+([.,][0-9]+)?"
+                                   oninvalid="this.setCustomValidity('Veuillez saisir un nombre valide (ex: 45.50).')"
+                                   oninput="this.setCustomValidity('')">
                             <span class="input-group-text">€</span>
                         </div>
                     </div>
@@ -153,8 +178,10 @@ require_once 'header.php';
 
                 <div class="row">
                     <div class="col-md-4 mb-3">
-                        <label class="form-label fw-semibold small text-muted">Plateforme / Service</label>
-                        <select name="platform_id" class="form-select">
+                        <label class="form-label fw-semibold small text-muted">Plateforme / Service *</label>
+                        <select name="platform_id" class="form-select" required
+                                oninvalid="this.setCustomValidity('Veuillez sélectionner une plateforme.')"
+                                onchange="this.setCustomValidity('')">
                             <option value="">-- Sélectionner une plateforme --</option>
                             <?php foreach ($platforms as $plat): ?>
                                 <option value="<?= $plat['id']; ?>"><?= htmlspecialchars($plat['name']); ?></option>
@@ -162,8 +189,10 @@ require_once 'header.php';
                         </select>
                     </div>
                     <div class="col-md-4 mb-3">
-                        <label class="form-label fw-semibold small text-muted">Mode de paiement</label>
-                        <select name="payment_method_id" class="form-select">
+                        <label class="form-label fw-semibold small text-muted">Mode de paiement *</label>
+                        <select name="payment_method_id" class="form-select" required
+                                oninvalid="this.setCustomValidity('Veuillez sélectionner un mode de paiement.')"
+                                onchange="this.setCustomValidity('')">
                             <option value="">-- Sélectionner --</option>
                             <?php foreach ($payment_methods as $pm): ?>
                                 <option value="<?= $pm['id']; ?>"><?= htmlspecialchars($pm['name']); ?></option>
@@ -181,12 +210,9 @@ require_once 'header.php';
                     </div>
                 </div>
 
-                <div class="row align-items-center bg-light p-3 rounded mb-3">
-<!--                    <div class="col-md-4 mb-2 mb-md-0">-->
-<!--                        <label class="form-label fw-semibold small text-success mb-1">Date de paiement</label>-->
-<!--                        <input type="date" name="date_paiement" class="form-control form-control-sm">-->
-<!--                    </div>-->
-                    <div class="col-md-4 mb-2 mb-md-0">
+                <!-- Bloc des paramètres de calculs (Symphétrique 50% / 50%) -->
+                <div class="row bg-light p-3 rounded mb-3 border">
+                    <div class="col-md-6 mb-3 mb-md-0">
                         <label class="form-label fw-semibold small text-muted mb-1">Calcul taxe (€)</label>
                         <div class="form-check form-switch mt-1">
                             <input class="form-check-input" type="checkbox" name="calcul_impot" id="calcul_impot" value="1" checked>
@@ -197,7 +223,7 @@ require_once 'header.php';
                             <label class="form-check-label small text-success fw-semibold" for="impot_paye">Taxe payée</label>
                         </div>
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-6">
                         <label class="form-label fw-semibold small text-muted mb-1">Cumul / Épargne (€)</label>
                         <div class="form-check form-switch mt-1">
                             <input class="form-check-input" type="checkbox" name="calcul_epargne" id="calcul_epargne" value="1" checked>
