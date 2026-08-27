@@ -715,6 +715,7 @@ require_once 'header.php';
 
 <style>
 
+
     /*
     |--------------------------------------------------------------------------
     | Разделитель между заказами
@@ -865,7 +866,9 @@ require_once 'header.php';
     .order-actions .btn {
         min-width: 34px;
     }
-
+    body {
+        background-color: #d3d1d1 !important;
+    }
 </style>
 
 
