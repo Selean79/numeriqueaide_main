@@ -27,19 +27,16 @@ $stmtCommandes = $pdo->prepare("
 $stmtCommandes->execute([':start_date' => $start_date, ':end_date' => $end_date]);
 $total_commandes = (float)($stmtCommandes->fetchColumn() ?? 0);
 
-// 2. Total des paiements (Только ОПЛАЧЕННЫЕ заказы за месяц)
+// 2. Total des paiements (Только заказы, оплаченные именно в этом календарном месяце)
 $stmtPaiements = $pdo->prepare("
     SELECT SUM(montant) FROM commandes 
-    WHERE (
-        (date_paiement BETWEEN :start_date AND :end_date) 
-        OR (date_paiement IS NULL AND date_commande BETWEEN :start_date AND :end_date)
-    )
+    WHERE date_paiement BETWEEN :start_date AND :end_date
     AND (LOWER(TRIM(statut)) IN ('payé', 'paye', 'terminee', 'завершен', 'оплачен'))
 ");
 $stmtPaiements->execute([':start_date' => $start_date, ':end_date' => $end_date]);
 $total_paiements = (float)($stmtPaiements->fetchColumn() ?? 0);
 
-// 3. Impôt 21,2% (Только по ОПЛАЧЕННЫМ заказам с флагом calcul_impot > 0)
+// 3. Impôt 21,2% (Только по заказам, оплаченным в этом месяце, с флагом calcul_impot > 0)
 $stmtImpot = $pdo->prepare("
     SELECT SUM(
         CASE 
@@ -47,17 +44,14 @@ $stmtImpot = $pdo->prepare("
             ELSE calcul_impot 
         END
     ) FROM commandes 
-    WHERE (
-        (date_paiement BETWEEN :start_date AND :end_date) 
-        OR (date_paiement IS NULL AND date_commande BETWEEN :start_date AND :end_date)
-    )
+    WHERE date_paiement BETWEEN :start_date AND :end_date
     AND (LOWER(TRIM(statut)) IN ('payé', 'paye', 'terminee', 'завершен', 'оплачен'))
     AND calcul_impot > 0
 ");
 $stmtImpot->execute([':start_date' => $start_date, ':end_date' => $end_date]);
 $total_impot = (float)($stmtImpot->fetchColumn() ?? 0);
 
-// 4. Épargne 10% (Только по ОПЛАЧЕННЫМ заказам с флагом calcul_epargne > 0)
+// 4. Épargne 10% (Только по заказам, оплаченным в этом месяце, с флагом calcul_epargne > 0)
 $stmtEpargne = $pdo->prepare("
     SELECT SUM(
         CASE 
@@ -65,10 +59,7 @@ $stmtEpargne = $pdo->prepare("
             ELSE calcul_epargne 
         END
     ) FROM commandes 
-    WHERE (
-        (date_paiement BETWEEN :start_date AND :end_date) 
-        OR (date_paiement IS NULL AND date_commande BETWEEN :start_date AND :end_date)
-    )
+    WHERE date_paiement BETWEEN :start_date AND :end_date
     AND (LOWER(TRIM(statut)) IN ('payé', 'paye', 'terminee', 'завершен', 'оплачен'))
     AND calcul_epargne > 0
 ");
@@ -83,7 +74,7 @@ $stmtPurchases = $pdo->prepare("
 $stmtPurchases->execute([':start_date' => $start_date, ':end_date' => $end_date]);
 $total_purchases = (float)($stmtPurchases->fetchColumn() ?? 0);
 
-// 6. Разбивка по способам оплаты
+// 6. Разбивка по способам оплаты (по дате оплаты в этом месяце)
 $pmCols = $pdo->query("SHOW COLUMNS FROM modes_de_paiement")->fetchAll(PDO::FETCH_COLUMN);
 $pmColName = in_array('nom', $pmCols) ? 'nom' : (in_array('name', $pmCols) ? 'name' : $pmCols[1]);
 
@@ -93,10 +84,7 @@ $stmtByMethod = $pdo->prepare("
         SUM(c.montant) AS amount
     FROM commandes c
     LEFT JOIN modes_de_paiement pm ON c.payment_method_id = pm.id
-    WHERE (
-        (c.date_paiement BETWEEN :start_date AND :end_date) 
-        OR (c.date_paiement IS NULL AND c.date_commande BETWEEN :start_date AND :end_date)
-    )
+    WHERE c.date_paiement BETWEEN :start_date AND :end_date
     AND (LOWER(TRIM(c.statut)) IN ('payé', 'paye', 'terminee', 'завершен', 'оплачен'))
     GROUP BY pm.id, method_name
 ");
