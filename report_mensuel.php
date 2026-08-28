@@ -22,6 +22,7 @@ $end_date   = date('Y-m-t', strtotime($start_date));
 $stmtCommandes = $pdo->prepare("
     SELECT SUM(montant) FROM commandes 
     WHERE date_commande BETWEEN :start_date AND :end_date
+    AND (LOWER(TRIM(statut)) NOT IN ('annulee', 'annulée', 'отменен'))
 ");
 $stmtCommandes->execute([':start_date' => $start_date, ':end_date' => $end_date]);
 $total_commandes = (float)($stmtCommandes->fetchColumn() ?? 0);
