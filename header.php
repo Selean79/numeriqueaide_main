@@ -37,28 +37,28 @@
         <div class="collapse navbar-collapse" id="navbarNav">
             <ul class="navbar-nav me-auto mb-2 mb-lg-0">
                 <li class="nav-item">
-                    <a class="nav-link" href="index.php"><i class="bi bi-speedometer2 me-1"></i> Главная</a>
+                    <a class="nav-link" href="index.php"><i class="bi bi-speedometer2 me-1"></i>Accueil</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="commandes_list.php"><i class="bi bi-cart me-1"></i> Заказы</a>
+                    <a class="nav-link" href="commandes_list.php"><i class="bi bi-cart me-1"></i>Commandes</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="factures_list.php"><i class="bi bi-file-earmark-text me-1"></i> Счета</a>
+                    <a class="nav-link" href="factures_list.php"><i class="bi bi-file-earmark-text me-1"></i>Factures</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="clients_list.php"><i class="bi bi-people me-1"></i> Клиенты</a>
+                    <a class="nav-link" href="clients_list.php"><i class="bi bi-people me-1"></i>Clients</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="fournisseurs_list.php"><i class="bi bi-shop me-1"></i> Поставщики</a>
+                    <a class="nav-link" href="fournisseurs_list.php"><i class="bi bi-shop me-1"></i>Fournisseurs</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="purchases_list.php"><i class="bi bi-bag me-1"></i> Закупки</a>
+                    <a class="nav-link" href="purchases_list.php"><i class="bi bi-bag me-1"></i>Achats</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="platforms_list.php"><i class="bi bi-diagram-3 me-1"></i> Платформы</a>
+                    <a class="nav-link" href="platforms_list.php"><i class="bi bi-diagram-3 me-1"></i>Plateformes</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="reports.php"><i class="bi bi-file-earmark-bar-graph me-1"></i> Отчеты</a>
+                    <a class="nav-link" href="reports.php"><i class="bi bi-file-earmark-bar-graph me-1"></i>Rapports</a>
                 </li>
             </ul>
 
