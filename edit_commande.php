@@ -40,8 +40,8 @@ $form = [
         'statut'            => $order['statut'] ?? 'Prévu',
         'commentaire'       => $order['commentaire'] ?? '',
         'notes'             => $order['notes'] ?? '',
-        'calcul_impot'      => !empty($order['calcul_impot']),
-        'calcul_epargne'    => !empty($order['calcul_epargne']),
+        'calcul_impot'      => isset($order['calcul_impot']) && (float)$order['calcul_impot'] > 0,
+        'calcul_epargne'    => isset($order['calcul_epargne']) && (float)$order['calcul_epargne'] > 0,
         'impot_paye'        => !empty($order['impot_paye']),
         'epargne_paye'      => !empty($order['epargne_paye'])
 ];
