@@ -191,21 +191,21 @@ if (
                 $insertStmt = $pdo->prepare($insertSql);
 
                 $insertStmt->execute([
-                        ':id_commande'       => $next_order_id,
-                        ':date_commande'     => $srcOrder['date_commande'],
-                        ':client_id'         => $srcOrder['client_id'],
-                        ':platform_id'      => $srcOrder['platform_id'],
-                        ':payment_method_id'=> $srcOrder['payment_method_id'],
-                        ':facture_id'        => $srcOrder['facture_id'],
-                        ':montant'           => $srcOrder['montant'],
-                        ':statut'            => 'Prévu',
-                        ':date_paiement'     => null,
-                        ':notes'             => $srcOrder['notes'],
-                        ':commentaire'       => $srcOrder['commentaire'],
-                        ':calcul_impot'      => $srcOrder['calcul_impot'],
-                        ':calcul_epargne'   => $srcOrder['calcul_epargne'],
-                        ':impot_paye'        => 0,
-                        ':epargne_paye'      => 0
+                        ':id_commande'        => $next_order_id,
+                        ':date_commande'      => $srcOrder['date_commande'],
+                        ':client_id'          => $srcOrder['client_id'],
+                        ':platform_id'        => $srcOrder['platform_id'],
+                        ':payment_method_id' => $srcOrder['payment_method_id'],
+                        ':facture_id'         => $srcOrder['facture_id'],
+                        ':montant'            => $srcOrder['montant'],
+                        ':statut'             => 'Prévu',
+                        ':date_paiement'      => null,
+                        ':notes'              => $srcOrder['notes'],
+                        ':commentaire'        => $srcOrder['commentaire'],
+                        ':calcul_impot'       => $srcOrder['calcul_impot'],
+                        ':calcul_epargne'     => $srcOrder['calcul_epargne'],
+                        ':impot_paye'         => 0,
+                        ':epargne_paye'       => 0
                 ]);
 
                 header("Location: commandes_list.php?copied=1");
@@ -448,6 +448,7 @@ $sql = "
 
         cl.telephone AS client_telephone,
         cl.adresse AS client_adresse,
+        cl.notes AS client_notes,
 
         $platNameCol AS platform_name,
 
@@ -1762,21 +1763,22 @@ require_once 'header.php';
                                     <!-- Client -->
                                     <td class="fw-semibold">
 
-                                        <?=
-                                        !empty(
-                                        trim(
-                                                $order['client_name']
-                                        )
-                                        )
+                                        <?php if (!empty(trim($order['client_name']))): ?>
+                                            <a href="edit_client.php?id=<?= (int)$order['client_id']; ?>"
+                                               class="text-decoration-none text-dark"
+                                               title="Modifier le client">
+                                                <?= htmlspecialchars(trim($order['client_name'])); ?>
+                                            </a>
+                                        <?php else: ?>
+                                            <span class="text-muted">—</span>
+                                        <?php endif; ?>
 
-                                                ? htmlspecialchars(
-                                                trim(
-                                                        $order['client_name']
-                                                )
-                                        )
-
-                                                : '<span class="text-muted">—</span>';
-                                        ?>
+                                        <?php if (!empty(trim($order['client_notes'] ?? ''))): ?>
+                                            <i class="bi bi-exclamation-circle-fill text-danger ms-1"
+                                               style="cursor: pointer;"
+                                               title="Client note: <?= htmlspecialchars($order['client_notes']); ?>">
+                                            </i>
+                                        <?php endif; ?>
 
 
                                         <?php
@@ -2305,7 +2307,6 @@ require_once 'header.php';
 
 
                         <?php endif; ?>
-
 
                         </tbody>
 
