@@ -1,7 +1,7 @@
 <?php
 
 
-// Если функции нет, объявляем её здесь, чтобы избежать ошибки
+// Si la fonction n'existe pas, nous la déclarons ici pour éviter une erreur
 if (!function_exists('renderPlatformBadge')) {
     function renderPlatformBadge($name)
     {
@@ -18,37 +18,37 @@ require_once 'header.php';
 
 $message = '';
 
-// 1. УВЕДОМЛЕНИЯ
+// 1. NOTIFICATIONS
 if (isset($_GET['updated'])) {
     $message = '<div class="alert alert-success alert-dismissible fade show" role="alert">
-                    <strong>Успешно!</strong> Данные платформы сохранены.
+                    <strong>Succès !</strong> Les données de la plateforme ont été enregistrées.
                     <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                 </div>';
 }
 
-// 2. ОБРАБОТКА УДАЛЕНИЯ ПЛАТФОРМЫ
+// 2. TRAITEMENT DE LA SUPPRESSION D'UNE PLATEFORME
 if (isset($_GET['delete_id'])) {
     $delete_id = (int)$_GET['delete_id'];
     try {
         $stmt = $pdo->prepare("DELETE FROM platforms WHERE id = :id");
         $stmt->execute([':id' => $delete_id]);
         $message = '<div class="alert alert-success alert-dismissible fade show" role="alert">
-                        Платформа успешно удалена!
+                        Plateforme supprimée avec succès !
                         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                     </div>';
     } catch (PDOException $e) {
-        $message = '<div class="alert alert-danger">Ошибка удаления: ' . htmlspecialchars($e->getMessage()) . '</div>';
+        $message = '<div class="alert alert-danger">Erreur de suppression : ' . htmlspecialchars($e->getMessage()) . '</div>';
     }
 }
 
-// 3. ПОИСК И СОРТИРОВКА
+// 3. RECHERCHE ET TRI
 $search = trim($_GET['search'] ?? '');
 $sort_column = $_GET['sort'] ?? 'name';
 $allowed_columns = [
-    'id' => 'id',
-    'name' => 'name',
-    'impot' => 'default_impot_rate',
-    'epargne' => 'default_epargne_rate'
+        'id' => 'id',
+        'name' => 'name',
+        'impot' => 'default_impot_rate',
+        'epargne' => 'default_epargne_rate'
 ];
 
 if (!array_key_exists($sort_column, $allowed_columns)) {
@@ -67,7 +67,7 @@ function getSortUrl($col, $current_col, $current_order) {
     return basename($_SERVER['PHP_SELF']) . '?' . http_build_query($queryParams);
 }
 
-// 4. ДИНАМИЧЕСКИЙ SQL-ЗАПРОС
+// 4. REQUÊTE SQL DYNAMIQUE
 $conditions = [];
 $params = [];
 
@@ -89,23 +89,23 @@ try {
     $stmt->execute($params);
     $platforms = $stmt->fetchAll();
 } catch (PDOException $e) {
-    die("Ошибка выполнения запроса: " . htmlspecialchars($e->getMessage()));
+    die("Erreur d'exécution de la requête : " . htmlspecialchars($e->getMessage()));
 }
 ?>
 
-<title>Список платформ — NumériqueAide</title>
+<title>Liste des plateformes — NumériqueAide</title>
 
 <div class="container mt-4 mb-5" style="max-width: 900px;">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2><i class="bi bi-diagram-3 me-2"></i>Список платформ</h2>
+        <h2><i class="bi bi-diagram-3 me-2"></i>Liste des plateformes</h2>
         <a href="add_platform.php" class="btn btn-success">
-            <i class="bi bi-plus-circle me-1"></i> Добавить платформу
+            <i class="bi bi-plus-circle me-1"></i> Ajouter une plateforme
         </a>
     </div>
 
     <?= $message; ?>
 
-    <!-- Поиск -->
+    <!-- Recherche -->
     <div class="card mb-4 shadow-sm">
         <div class="card-body">
             <form method="GET" class="row g-2">
@@ -113,17 +113,17 @@ try {
                 <input type="hidden" name="order" value="<?= htmlspecialchars($sort_order); ?>">
 
                 <div class="col-md-9">
-                    <input type="text" name="search" class="form-control" 
-                           placeholder="Поиск по названию платформы..." 
+                    <input type="text" name="search" class="form-control"
+                           placeholder="Rechercher par nom de plateforme..."
                            value="<?= htmlspecialchars($search); ?>">
                 </div>
 
                 <div class="col-md-3 d-flex gap-2">
                     <button type="submit" class="btn btn-primary w-100">
-                        <i class="bi bi-search"></i> Найти
+                        <i class="bi bi-search"></i> Rechercher
                     </button>
                     <?php if (!empty($search)): ?>
-                        <a href="<?= basename($_SERVER['PHP_SELF']); ?>" class="btn btn-outline-secondary" title="Сбросить">
+                        <a href="<?= basename($_SERVER['PHP_SELF']); ?>" class="btn btn-outline-secondary" title="Réinitialiser">
                             <i class="bi bi-x-circle"></i>
                         </a>
                     <?php endif; ?>
@@ -132,76 +132,76 @@ try {
         </div>
     </div>
 
-    <!-- Таблица платформ -->
+    <!-- Tableau des plateformes -->
     <div class="card shadow-sm">
         <div class="card-body p-0">
             <div class="table-responsive">
                 <table class="table table-hover table-sm table-custom-sm align-middle mb-0">
                     <thead class="table-dark">
-                        <tr>
-                            <th style="width: 80px;">
-                                <a href="<?= getSortUrl('id', $sort_column, $sort_order); ?>" class="text-white text-decoration-none">
-                                    ID
-                                    <?php if ($sort_column === 'id'): ?>
-                                        <i class="bi bi-arrow-<?= $sort_order === 'ASC' ? 'up' : 'down'; ?>"></i>
-                                    <?php endif; ?>
-                                </a>
-                            </th>
-                            <th>
-                                <a href="<?= getSortUrl('name', $sort_column, $sort_order); ?>" class="text-white text-decoration-none">
-                                    Название платформы
-                                    <?php if ($sort_column === 'name'): ?>
-                                        <i class="bi bi-arrow-<?= $sort_order === 'ASC' ? 'up' : 'down'; ?>"></i>
-                                    <?php endif; ?>
-                                </a>
-                            </th>
-                            <th>
-                                <a href="<?= getSortUrl('impot', $sort_column, $sort_order); ?>" class="text-white text-decoration-none">
-                                    Ставка налога (URSSAF)
-                                    <?php if ($sort_column === 'impot'): ?>
-                                        <i class="bi bi-arrow-<?= $sort_order === 'ASC' ? 'up' : 'down'; ?>"></i>
-                                    <?php endif; ?>
-                                </a>
-                            </th>
-                            <th>
-                                <a href="<?= getSortUrl('epargne', $sort_column, $sort_order); ?>" class="text-white text-decoration-none">
-                                    Ставка отчислений
-                                    <?php if ($sort_column === 'epargne'): ?>
-                                        <i class="bi bi-arrow-<?= $sort_order === 'ASC' ? 'up' : 'down'; ?>"></i>
-                                    <?php endif; ?>
-                                </a>
-                            </th>
-                            <th class="text-end" style="width: 120px;">Действия</th>
-                        </tr>
+                    <tr>
+                        <th style="width: 80px;">
+                            <a href="<?= getSortUrl('id', $sort_column, $sort_order); ?>" class="text-white text-decoration-none">
+                                ID
+                                <?php if ($sort_column === 'id'): ?>
+                                    <i class="bi bi-arrow-<?= $sort_order === 'ASC' ? 'up' : 'down'; ?>"></i>
+                                <?php endif; ?>
+                            </a>
+                        </th>
+                        <th>
+                            <a href="<?= getSortUrl('name', $sort_column, $sort_order); ?>" class="text-white text-decoration-none">
+                                Nom de la plateforme
+                                <?php if ($sort_column === 'name'): ?>
+                                    <i class="bi bi-arrow-<?= $sort_order === 'ASC' ? 'up' : 'down'; ?>"></i>
+                                <?php endif; ?>
+                            </a>
+                        </th>
+                        <th>
+                            <a href="<?= getSortUrl('impot', $sort_column, $sort_order); ?>" class="text-white text-decoration-none">
+                                Taux de taxe (URSSAF)
+                                <?php if ($sort_column === 'impot'): ?>
+                                    <i class="bi bi-arrow-<?= $sort_order === 'ASC' ? 'up' : 'down'; ?>"></i>
+                                <?php endif; ?>
+                            </a>
+                        </th>
+                        <th>
+                            <a href="<?= getSortUrl('epargne', $sort_column, $sort_order); ?>" class="text-white text-decoration-none">
+                                Taux de cotisation
+                                <?php if ($sort_column === 'epargne'): ?>
+                                    <i class="bi bi-arrow-<?= $sort_order === 'ASC' ? 'up' : 'down'; ?>"></i>
+                                <?php endif; ?>
+                            </a>
+                        </th>
+                        <th class="text-end" style="width: 120px;">Actions</th>
+                    </tr>
                     </thead>
                     <tbody>
-                        <?php if (count($platforms) > 0): ?>
-                            <?php foreach ($platforms as $p): ?>
-                                <tr>
-                                    <td><strong><?= $p['id']; ?></strong></td>
-                                    <td><?= renderPlatformBadge($p['name']); ?></td>
-                                    <td><span class="badge bg-warning text-dark"><?= number_format($p['default_impot_rate'] ?? 0, 2, ',', ' '); ?> %</span></td>
-                                    <td><span class="badge bg-info text-white"><?= number_format($p['default_epargne_rate'] ?? 0, 2, ',', ' '); ?> %</span></td>
-                                    <td class="text-end">
-                                        <div class="btn-group btn-group-sm" role="group">
-                                            <a href="edit_platform.php?id=<?= $p['id']; ?>" class="btn btn-outline-primary" title="Изменить">
-                                                <i class="bi bi-pencil"></i>
-                                            </a>
-                                            <a href="<?= basename($_SERVER['PHP_SELF']); ?>?delete_id=<?= $p['id']; ?>" 
-                                               class="btn btn-outline-danger" 
-                                               title="Удалить"
-                                               onclick="return confirm('Вы уверены, что хотите удалить платформу «<?= htmlspecialchars($p['name']); ?>»?');">
-                                                <i class="bi bi-trash"></i>
-                                            </a>
-                                        </div>
-                                    </td>
-                                </tr>
-                            <?php endforeach; ?>
-                        <?php else: ?>
+                    <?php if (count($platforms) > 0): ?>
+                        <?php foreach ($platforms as $p): ?>
                             <tr>
-                                <td colspan="5" class="text-center py-4 text-muted">Платформы не найдены.</td>
+                                <td><strong><?= $p['id']; ?></strong></td>
+                                <td><?= renderPlatformBadge($p['name']); ?></td>
+                                <td><span class="badge bg-warning text-dark"><?= number_format($p['default_impot_rate'] ?? 0, 2, ',', ' '); ?> %</span></td>
+                                <td><span class="badge bg-info text-white"><?= number_format($p['default_epargne_rate'] ?? 0, 2, ',', ' '); ?> %</span></td>
+                                <td class="text-end">
+                                    <div class="btn-group btn-group-sm" role="group">
+                                        <a href="edit_platform.php?id=<?= $p['id']; ?>" class="btn btn-outline-primary" title="Modifier">
+                                            <i class="bi bi-pencil"></i>
+                                        </a>
+                                        <a href="<?= basename($_SERVER['PHP_SELF']); ?>?delete_id=<?= $p['id']; ?>"
+                                           class="btn btn-outline-danger"
+                                           title="Supprimer"
+                                           onclick="return confirm('Êtes-vous sûr de vouloir supprimer la plateforme « <?= htmlspecialchars($p['name']); ?> » ?');">
+                                            <i class="bi bi-trash"></i>
+                                        </a>
+                                    </div>
+                                </td>
                             </tr>
-                        <?php endif; ?>
+                        <?php endforeach; ?>
+                    <?php else: ?>
+                        <tr>
+                            <td colspan="5" class="text-center py-4 text-muted">Aucune plateforme trouvée.</td>
+                        </tr>
+                    <?php endif; ?>
                     </tbody>
                 </table>
             </div>

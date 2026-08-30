@@ -6,6 +6,7 @@ error_reporting(E_ALL);
 require_once 'db.php';
 
 $id = (int)($_GET['id'] ?? 0);
+$return_page = $_GET['return'] ?? $_POST['return'] ?? 'commandes_list.php';
 
 if ($id <= 0) {
     header('Location: commandes_list.php');
@@ -25,25 +26,25 @@ $error = '';
 
 // Значения формы
 $form = [
-        'id_commande'       => $order['id_commande'] ?? '',
-        'client_id'         => $order['client_id'] ?? '',
-        'platform_id'       => $order['platform_id'] ?? '',
+        'id_commande'        => $order['id_commande'] ?? '',
+        'client_id'          => $order['client_id'] ?? '',
+        'platform_id'        => $order['platform_id'] ?? '',
         'payment_method_id' => $order['payment_method_id'] ?? '',
-        'facture_id'        => $order['facture_id'] ?? '',
-        'date_commande'     => !empty($order['date_commande'])
+        'facture_id'         => $order['facture_id'] ?? '',
+        'date_commande'      => !empty($order['date_commande'])
                 ? date('d/m/Y', strtotime($order['date_commande']))
                 : '',
-        'date_paiement'     => !empty($order['date_paiement'])
+        'date_paiement'      => !empty($order['date_paiement'])
                 ? date('d/m/Y', strtotime($order['date_paiement']))
                 : '',
-        'montant'           => $order['montant'] ?? '',
-        'statut'            => $order['statut'] ?? 'Prévu',
-        'commentaire'       => $order['commentaire'] ?? '',
-        'notes'             => $order['notes'] ?? '',
-        'calcul_impot'      => isset($order['calcul_impot']) && (float)$order['calcul_impot'] > 0,
-        'calcul_epargne'    => isset($order['calcul_epargne']) && (float)$order['calcul_epargne'] > 0,
-        'impot_paye'        => !empty($order['impot_paye']),
-        'epargne_paye'      => !empty($order['epargne_paye'])
+        'montant'            => $order['montant'] ?? '',
+        'statut'             => $order['statut'] ?? 'Prévu',
+        'commentaire'        => $order['commentaire'] ?? '',
+        'notes'              => $order['notes'] ?? '',
+        'calcul_impot'       => isset($order['calcul_impot']) && (float)$order['calcul_impot'] > 0,
+        'calcul_epargne'     => isset($order['calcul_epargne']) && (float)$order['calcul_epargne'] > 0,
+        'impot_paye'         => !empty($order['impot_paye']),
+        'epargne_paye'       => !empty($order['epargne_paye'])
 ];
 
 // ======================================================
@@ -51,6 +52,8 @@ $form = [
 // ======================================================
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+
+    $return_page = $_POST['return'] ?? 'commandes_list.php';
 
     $form['id_commande'] = trim($_POST['id_commande'] ?? '');
     $form['client_id'] = !empty($_POST['client_id']) ? (int)$_POST['client_id'] : '';
@@ -106,49 +109,45 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $updateSql = "
             UPDATE commandes 
             SET
-                id_commande       = :id_commande,
-                client_id         = :client_id,
-                platform_id       = :platform_id,
+                id_commande        = :id_commande,
+                client_id          = :client_id,
+                platform_id        = :platform_id,
                 payment_method_id = :payment_method_id,
-                facture_id        = :facture_id,
-                date_commande     = :date_commande,
-                date_paiement     = :date_paiement,
-                montant           = :montant,
-                statut            = :statut,
-                calcul_impot      = :calcul_impot,
-                calcul_epargne    = :calcul_epargne,
-                impot_paye        = :impot_paye,
-                epargne_paye      = :epargne_paye,
-                commentaire       = :commentaire,
-                notes             = :notes
+                facture_id         = :facture_id,
+                date_commande      = :date_commande,
+                date_paiement      = :date_paiement,
+                montant            = :montant,
+                statut             = :statut,
+                calcul_impot       = :calcul_impot,
+                calcul_epargne     = :calcul_epargne,
+                impot_paye         = :impot_paye,
+                epargne_paye       = :epargne_paye,
+                commentaire        = :commentaire,
+                notes              = :notes
             WHERE id = :id
         ";
 
         $updateStmt = $pdo->prepare($updateSql);
         $updateStmt->execute([
-                ':id_commande'       => $form['id_commande'],
-                ':client_id'         => $form['client_id'],
-                ':platform_id'       => $form['platform_id'],
+                ':id_commande'        => $form['id_commande'],
+                ':client_id'          => $form['client_id'],
+                ':platform_id'        => $form['platform_id'],
                 ':payment_method_id' => $form['payment_method_id'],
-                ':facture_id'        => $form['facture_id'] ?: null,
-                ':date_commande'     => $date_commande,
-                ':date_paiement'     => $date_paiement,
-                ':montant'           => $montant,
-                ':statut'            => $form['statut'],
-                ':calcul_impot'      => $calcul_impot,
-                ':calcul_epargne'    => $calcul_epargne,
-                ':impot_paye'        => $impot_paye,
-                ':epargne_paye'      => $epargne_paye,
-                ':commentaire'       => $form['commentaire'],
-                ':notes'             => $form['notes'],
-                ':id'                => $order['id']
+                ':facture_id'         => $form['facture_id'] ?: null,
+                ':date_commande'      => $date_commande,
+                ':date_paiement'      => $date_paiement,
+                ':montant'            => $montant,
+                ':statut'             => $form['statut'],
+                ':calcul_impot'       => $calcul_impot,
+                ':calcul_epargne'     => $calcul_epargne,
+                ':impot_paye'         => $impot_paye,
+                ':epargne_paye'       => $epargne_paye,
+                ':commentaire'        => $form['commentaire'],
+                ':notes'              => $form['notes'],
+                ':id'                 => $order['id']
         ]);
 
-        if (!empty($_POST['return'])) {
-            header("Location: " . $_POST['return']);
-        } else {
-            header("Location: commandes_list.php?updated=1#order-" . $order['id']);
-        }
+        header("Location: " . $return_page);
         exit;
 
     } catch (PDOException $e) {
@@ -180,7 +179,6 @@ require_once 'header.php';
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
 
 <style>
-    /* Затемненный фон всей страницы для контраста */
     body {
         background-color: #cbd5e1 !important;
     }
@@ -196,7 +194,7 @@ require_once 'header.php';
             <h5 class="mb-0 fw-bold">
                 <i class="bi bi-pencil-square me-2"></i>Modifier la commande #<?= htmlspecialchars($order['id_commande']); ?>
             </h5>
-            <a href="commandes_list.php" class="btn btn-sm btn-outline-dark">Liste des commandes</a>
+            <a href="<?= htmlspecialchars($return_page); ?>" class="btn btn-sm btn-outline-dark">Retour</a>
         </div>
         <div class="card-body p-4">
 
@@ -207,6 +205,7 @@ require_once 'header.php';
             <?php endif; ?>
 
             <form method="POST" id="commandeForm">
+                <input type="hidden" name="return" value="<?= htmlspecialchars($return_page); ?>">
 
                 <div class="row g-3 mb-3">
                     <div class="col-md-6">

@@ -7,6 +7,9 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Bootstrap Icons -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <!--<link rel="icon" type="image/x-icon" href="favicon.ico">-->
+    <!-- Или если вы используете PNG: -->
+    <link rel="icon" type="image/png" href="img/favicon.png">
     <style>
         body {
             background-color: #f8f9fa;
@@ -49,14 +52,20 @@
                     <a class="nav-link" href="clients_list.php"><i class="bi bi-people me-1"></i>Clients</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="fournisseurs_list.php"><i class="bi bi-shop me-1"></i>Fournisseurs</a>
-                </li>
-                <li class="nav-item">
                     <a class="nav-link" href="purchases_list.php"><i class="bi bi-bag me-1"></i>Achats</a>
                 </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="platforms_list.php"><i class="bi bi-diagram-3 me-1"></i>Plateformes</a>
+
+                <!-- Выпадающее меню (Dropdown) для Fournisseurs и Plateformes -->
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" id="partnersDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="bi bi-shop me-1"></i> Partenaires
+                    </a>
+                    <ul class="dropdown-menu" aria-labelledby="partnersDropdown">
+                        <li><a class="dropdown-item" href="fournisseurs_list.php"><i class="bi bi-shop me-2"></i>Fournisseurs</a></li>
+                        <li><a class="dropdown-item" href="platforms_list.php"><i class="bi bi-diagram-3 me-2"></i>Plateformes</a></li>
+                    </ul>
                 </li>
+
                 <li class="nav-item">
                     <a class="nav-link" href="reports.php"><i class="bi bi-file-earmark-bar-graph me-1"></i>Rapports</a>
                 </li>

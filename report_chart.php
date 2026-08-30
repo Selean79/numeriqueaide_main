@@ -5,11 +5,11 @@ error_reporting(E_ALL);
 
 require_once 'db.php';
 
-// 1. Общее количество всех заказов
+// 1. Nombre total de toutes les commandes
 $stmtTotalCount = $pdo->query("SELECT COUNT(*) FROM commandes");
 $totalCount = (int)$stmtTotalCount->fetchColumn();
 
-// 2. Получение данных для графика
+// 2. Récupération des données pour le graphique
 $sql = "
     SELECT 
         DATE_FORMAT(date_commande, '%Y-%m') AS ym,
@@ -43,23 +43,21 @@ require_once 'header.php';
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <div class="container mt-4 mb-5" style="max-width: 1100px;">
-    <!-- Навигация -->
+    <!-- Navigation -->
     <div class="d-flex align-items-center gap-3 mb-4">
-        <a href="reports.php" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i> К отчетам</a>
+        <a href="reports.php" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i> Retour aux rapports</a>
         <nav aria-label="breadcrumb">
             <ol class="breadcrumb mb-0">
-<!--                <li class="breadcrumb-item"><a href="reports.php" class="text-decoration-none">Rapports</a></li>-->
-<!--                <li class="breadcrumb-item active">Graphique du rapport</li>-->
             </ol>
         </nav>
     </div>
 
-    <!-- Заголовок -->
+    <!-- Titre -->
     <div class="mb-4">
         <h2 class="fw-bold text-dark"><i class="bi bi-graph-up text-primary me-2"></i>Commandes</h2>
     </div>
 
-    <!-- Карточка количества -->
+    <!-- Carte de quantité -->
     <div class="card shadow-sm border-0 mb-4">
         <div class="card-body p-4">
             <div class="text-muted small fw-semibold text-uppercase mb-1">Quantité</div>
@@ -67,7 +65,7 @@ require_once 'header.php';
         </div>
     </div>
 
-    <!-- График -->
+    <!-- Graphique -->
     <div class="card shadow-sm border-0">
         <div class="card-body p-4">
             <h5 class="fw-bold text-dark mb-1">Somme des commandes avec statut Payé</h5>
