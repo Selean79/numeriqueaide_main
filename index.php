@@ -69,26 +69,26 @@ try {
     $last_orders = $stmtLast->fetchAll();
 
 } catch (PDOException $e) {
-    die("Ошибка базы данных: " . htmlspecialchars($e->getMessage()));
+    die("Erreur de base de données : " . htmlspecialchars($e->getMessage()));
 }
 
 require_once 'header.php';
 ?>
 
-<title>Дашборд <?= $current_year; ?> — NumériqueAide</title>
+<title>Tableau de bord <?= $current_year; ?> — NumériqueAide</title>
 
 <div class="container-fluid mt-4 px-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h3 class="mb-0 fw-bold"><i class="bi bi-speedometer2 me-2"></i>Панель управления (Дашборд <?= $current_year; ?>)</h3>
+        <h3 class="mb-0 fw-bold"><i class="bi bi-speedometer2 me-2"></i>Tableau de bord (<?= $current_year; ?>)</h3>
     </div>
 
-    <!-- Карточки -->
+    <!-- Cartes -->
     <div class="row g-3 mb-4">
         <div class="col-md-3">
             <div class="card border-0 bg-primary bg-gradient text-white shadow-sm h-100">
                 <div class="card-body p-4 d-flex justify-content-between align-items-center">
                     <div>
-                        <div class="text-white-50 small fw-semibold text-uppercase">Общий оборот</div>
+                        <div class="text-white-50 small fw-semibold text-uppercase">Chiffre d'affaires</div>
                         <div class="fs-3 fw-bold mt-1"><?= number_format($total_turnover, 2, ',', ' '); ?> €</div>
                     </div>
                     <i class="bi bi-wallet2 fs-1 opacity-50"></i>
@@ -99,7 +99,7 @@ require_once 'header.php';
             <div class="card border-0 bg-warning bg-gradient text-dark shadow-sm h-100">
                 <div class="card-body p-4 d-flex justify-content-between align-items-center">
                     <div>
-                        <div class="text-dark-50 small fw-semibold text-uppercase">Налог URSSAF</div>
+                        <div class="text-dark-50 small fw-semibold text-uppercase">Taxes URSSAF</div>
                         <div class="fs-3 fw-bold mt-1"><?= number_format($total_impot, 2, ',', ' '); ?> €</div>
                     </div>
                     <i class="bi bi-bank fs-1 opacity-50"></i>
@@ -110,7 +110,7 @@ require_once 'header.php';
             <div class="card border-0 bg-info bg-gradient text-dark shadow-sm h-100">
                 <div class="card-body p-4 d-flex justify-content-between align-items-center">
                     <div>
-                        <div class="text-dark-50 small fw-semibold text-uppercase">Накопления</div>
+                        <div class="text-dark-50 small fw-semibold text-uppercase">Épargne</div>
                         <div class="fs-3 fw-bold mt-1"><?= number_format($total_epargne, 2, ',', ' '); ?> €</div>
                     </div>
                     <i class="bi bi-piggy-bank fs-1 opacity-50"></i>
@@ -121,7 +121,7 @@ require_once 'header.php';
             <div class="card border-0 bg-success bg-gradient text-white shadow-sm h-100">
                 <div class="card-body p-4 d-flex justify-content-between align-items-center">
                     <div>
-                        <div class="text-white-50 small fw-semibold text-uppercase">Заказы / Клиенты</div>
+                        <div class="text-white-50 small fw-semibold text-uppercase">Commandes / Clients</div>
                         <div class="fs-3 fw-bold mt-1"><?= $orders_count; ?> / <?= $clients_count; ?></div>
                     </div>
                     <i class="bi bi-people fs-1 opacity-50"></i>
@@ -130,11 +130,11 @@ require_once 'header.php';
         </div>
     </div>
 
-    <!-- Последние заказы -->
+    <!-- Dernières commandes -->
     <div class="card shadow-sm border-0 mb-5">
         <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
-            <h5 class="mb-0 fw-bold"><i class="bi bi-clock-history me-2"></i>Последние заказы</h5>
-            <a href="commandes_list.php" class="btn btn-sm btn-outline-primary">Все заказы</a>
+            <h5 class="mb-0 fw-bold"><i class="bi bi-clock-history me-2"></i>Dernières commandes</h5>
+            <a href="commandes_list.php" class="btn btn-sm btn-outline-primary">Toutes les commandes</a>
         </div>
         <div class="card-body p-0">
             <div class="table-responsive">
@@ -142,17 +142,17 @@ require_once 'header.php';
                     <thead class="table-dark">
                     <tr>
                         <th>ID</th>
-                        <th>Дата</th>
-                        <th>Клиент</th>
-                        <th class="text-end">Сумма</th>
-                        <th class="text-center">Статус</th>
-                        <th class="text-center">Действия</th>
+                        <th>Date</th>
+                        <th>Client</th>
+                        <th class="text-end">Montant</th>
+                        <th class="text-center">Statut</th>
+                        <th class="text-center">Actions</th>
                     </tr>
                     </thead>
                     <tbody>
                     <?php if (empty($last_orders)): ?>
                         <tr>
-                            <td colspan="6" class="text-center py-4 text-muted">Заказы не найдены</td>
+                            <td colspan="6" class="text-center py-4 text-muted">Aucune commande trouvée</td>
                         </tr>
                     <?php else: ?>
                         <?php foreach ($last_orders as $ord): ?>
@@ -178,7 +178,7 @@ require_once 'header.php';
                                 <td class="text-end fw-bold"><?= number_format((float)$ord['montant'], 2, ',', ' '); ?> €</td>
                                 <td class="text-center"><span class="badge <?= $statusBadge; ?>"><?= htmlspecialchars($statusLabel); ?></span></td>
                                 <td class="text-center">
-                                    <a href="edit_commande.php?id=<?= $ord['id']; ?>" class="btn btn-sm btn-outline-primary"><i class="bi bi-pencil"></i></a>
+                                    <a href="edit_commande.php?id=<?= $ord['id']; ?>" class="btn btn-sm btn-outline-primary" title="Modifier"><i class="bi bi-pencil"></i></a>
                                 </td>
                             </tr>
                         <?php endforeach; ?>
