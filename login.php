@@ -62,7 +62,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <div class="card p-4">
     <div class="text-center mb-4">
         <h3 class="fw-bold text-success"><i class="bi bi-shield-lock me-2"></i>NumériqueAide</h3>
-        <p class="text-muted small">Vकृपया connectez-vous pour continuer</p>
+        <p class="text-muted small">Veuillez vous connecter pour continuer</p>
     </div>
 
     <?php if (!empty($error)): ?>

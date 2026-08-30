@@ -16,6 +16,29 @@ if (!isset($_SESSION['user_id'])) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <link rel="icon" type="image/x-icon" href="img/favicon.png">
+    <style>
+        /* Увеличение текста ссылок меню при наведении */
+        .navbar-nav .nav-link {
+            transition: font-size 0.2s ease, color 0.2s ease;
+        }
+        .navbar-nav .nav-link:hover {
+            font-size: 1.08rem;
+            color: #ffffff !important;
+        }
+        /* Темный фон и стили для выпадающего меню */
+        .navbar-dark .dropdown-menu {
+            background-color: #212529;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+        }
+        .navbar-dark .dropdown-menu .dropdown-item {
+            color: rgba(255, 255, 255, 0.75);
+        }
+        .navbar-dark .dropdown-menu .dropdown-item:hover {
+            background-color: #343a40;
+            color: #ffffff;
+        }
+    </style>
 </head>
 <body class="bg-light">
 
