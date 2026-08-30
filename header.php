@@ -67,6 +67,9 @@ if (!isset($_SESSION['user_id'])) {
                 <li class="nav-item">
                     <a class="nav-link" href="purchases_list.php"><i class="bi bi-bag-check me-1"></i> Achats</a>
                 </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="reports.php"><i class="bi bi-file-earmark-bar-graph me-1"></i>Rapports</a>
+                </li>
                 <li class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
                         <i class="bi bi-gear me-1"></i> Partenaires
