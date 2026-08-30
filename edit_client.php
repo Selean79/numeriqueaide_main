@@ -1,4 +1,5 @@
 <?php
+#sdfh
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
@@ -6,6 +7,8 @@ error_reporting(E_ALL);
 require_once 'db.php';
 
 $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
+$return_order = isset($_GET['return_order']) ? (int)$_GET['return_order'] : 0;
+
 $client = null;
 $error = '';
 
@@ -14,6 +17,12 @@ if ($id > 0) {
     $stmt = $pdo->prepare("SELECT * FROM clients WHERE id = :id");
     $stmt->execute([':id' => $id]);
     $client = $stmt->fetch();
+}
+
+// Формируем URL для возврата обратно в список заказов на ту же строчку
+$back_url = "commandes_list.php";
+if ($return_order > 0) {
+    $back_url .= "#order-" . $return_order;
 }
 
 // Обработка отправки формы (сохранение/обновление)
@@ -53,8 +62,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     ':notes' => $notes
             ]);
         }
-        // Безопасный редирект после успешного сохранения
-        header("Location: clients_list.php");
+        // Безопасный редирект обратно к заказу
+        header("Location: " . $back_url);
         exit;
     } else {
         $error = "Le champ « Nom / Raison sociale » est obligatoire.";
@@ -79,7 +88,7 @@ require_once 'header.php';
 
 <div class="container mt-4 mb-5" style="max-width: 600px;">
     <div class="d-flex align-items-center mb-4">
-        <a href="clients_list.php" class="btn btn-outline-secondary btn-sm me-3"><i class="bi bi-arrow-left"></i> Retour</a>
+        <a href="<?= $back_url; ?>" class="btn btn-outline-secondary btn-sm me-3"><i class="bi bi-arrow-left"></i> Retour</a>
         <h3 class="mb-0 fw-bold"><i class="bi bi-person-badge me-2"></i><?= $id > 0 ? 'Modifier le client' : 'Ajouter un client'; ?></h3>
     </div>
 
@@ -119,7 +128,7 @@ require_once 'header.php';
                     <textarea name="notes" class="form-control" rows="3"><?= htmlspecialchars($client['notes'] ?? ''); ?></textarea>
                 </div>
                 <div class="d-flex justify-content-end gap-2">
-                    <a href="clients_list.php" class="btn btn-secondary">Annuler</a>
+                    <a href="<?= $back_url; ?>" class="btn btn-secondary">Annuler</a>
                     <button type="submit" class="btn btn-success"><i class="bi bi-save me-1"></i> Enregistrer</button>
                 </div>
             </form>
@@ -138,7 +147,6 @@ require_once 'header.php';
 
                 if (!x) return;
 
-                // Префикс по умолчанию +33, если пользователь начинает вводить
                 let formatted = '+33';
                 if (x[2]) formatted += ' ' + x[2];
                 if (x[3]) formatted += ' ' + x[3];
@@ -146,7 +154,6 @@ require_once 'header.php';
                 if (x[5]) formatted += ' ' + x[5];
                 if (x[6]) formatted += ' ' + x[6];
 
-                // Если поле пустое, очищаем полностью
                 if (e.target.value.trim() === '' || e.target.value === '+') {
                     e.target.value = '';
                 } else {

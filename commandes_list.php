@@ -1764,7 +1764,7 @@ require_once 'header.php';
                                     <td class="fw-semibold">
 
                                         <?php if (!empty(trim($order['client_name']))): ?>
-                                            <a href="edit_client.php?id=<?= (int)$order['client_id']; ?>"
+                                            <a href="edit_client.php?id=<?= (int)$order['client_id']; ?>&return_order=<?= (int)$order['id']; ?>"
                                                class="text-decoration-none text-dark"
                                                title="Modifier le client">
                                                 <?= htmlspecialchars(trim($order['client_name'])); ?>
