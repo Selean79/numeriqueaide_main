@@ -4,6 +4,11 @@ ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 
 require_once 'db.php';
+// Если пользователь имеет тип User, запрещаем доступ и перенаправляем на главную
+if (isset($_SESSION['type']) && $_SESSION['type'] === 'User') {
+    header("Location: index.php");
+    exit;
+}
 
 // Функция оформления названия магазина в виде цветного бейджа
 function renderMagasinBadge($magasinName) {

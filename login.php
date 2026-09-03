@@ -29,12 +29,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             // Проверяем пользователя и хэш пароля
             if ($user && password_verify($password, $user['password'])) {
-                // Успешный вход: сохраняем данные в сессию
-                $_SESSION['user_id'] = $user['id'];
-                $_SESSION['username'] = $user['username'];
 
-                header("Location: index.php");
-                exit;
+                // Проверяем, активен ли пользователь
+                if (isset($user['status']) && $user['status'] === 'Inactive') {
+                    $error = "Votre compte est désactivé. Veuillez contacter l'administrateur.";
+                } else {
+                    // Успешный вход: сохраняем данные в сессию
+                    $_SESSION['user_id'] = $user['id'];
+                    $_SESSION['username'] = $user['username'];
+                    $_SESSION['type'] = $user['type']; // Сохраняем тип пользователя для проверки прав в меню
+
+                    header("Location: index.php");
+                    exit;
+                }
+
             } else {
                 $error = "Nom d'utilisateur ou mot de passe incorrect.";
             }
