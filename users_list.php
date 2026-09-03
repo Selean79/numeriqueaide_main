@@ -6,6 +6,12 @@ error_reporting(E_ALL);
 require_once 'db.php';
 require_once 'header.php';
 
+// Если пользователь имеет тип User, запрещаем доступ и перенаправляем на главную
+if (isset($_SESSION['type']) && $_SESSION['type'] === 'User') {
+    header("Location: index.php");
+    exit;
+}
+
 // Suppression d'un utilisateur
 if (isset($_GET['delete_id'])) {
     $delete_id = (int)$_GET['delete_id'];
@@ -33,17 +39,26 @@ try {
 <div class="container-fluid mt-4 px-4">
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h3 class="mb-0"><i class="bi bi-person-badge me-2"></i>Liste des utilisateurs</h3>
-        <a href="register.php" class="btn btn-success">
+        <a href="register_user.php" class="btn btn-success">
             <i class="bi bi-person-plus me-1"></i> Ajouter un utilisateur
         </a>
     </div>
 
     <!-- Notification de suppression réussie -->
     <?php if (isset($_GET['deleted'])): ?>
-        <div class="alert alert-warning alert-dismissible fade show" role="alert">
+        <div class="alert alert-warning alert-dismissible fade show" role="alert" id="autoDismissAlert">
             Utilisateur supprimé avec succès.
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
+        <script>
+            setTimeout(function() {
+                let alertElement = document.getElementById('autoDismissAlert');
+                if (alertElement) {
+                    let alert = new bootstrap.Alert(alertElement);
+                    alert.close();
+                }
+            }, 5000);
+        </script>
     <?php endif; ?>
 
     <!-- Affichage des erreurs -->
@@ -57,21 +72,23 @@ try {
     <div class="card shadow-sm">
         <div class="card-body p-0">
             <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0" style="min-width: 800px;">
+                <table class="table table-hover align-middle mb-0" style="min-width: 1050px;">
                     <thead class="table-dark">
                     <tr>
                         <th style="width: 60px;" class="text-center">ID</th>
                         <th>Nom d'utilisateur (Username)</th>
+                        <th>Nom & Prénom</th>
                         <th style="width: 140px;" class="text-center">Type</th>
                         <th style="width: 140px;" class="text-center">Statut</th>
-                        <th style="width: 180px;">Date de création</th>
+                        <th style="width: 170px;">Date de création</th>
+                        <th style="width: 170px;">Dernière modification</th>
                         <th style="width: 100px;" class="text-center">Actions</th>
                     </tr>
                     </thead>
                     <tbody>
                     <?php if (empty($users)): ?>
                         <tr>
-                            <td colspan="6" class="text-center py-4 text-muted">Aucun utilisateur trouvé</td>
+                            <td colspan="8" class="text-center py-4 text-muted">Aucun utilisateur trouvé</td>
                         </tr>
                     <?php else: ?>
                         <?php foreach ($users as $user): ?>
@@ -85,6 +102,9 @@ try {
                             // Style du badge pour le statut
                             $statusVal = $user['status'] ?? 'Active';
                             $statusBadge = ($statusVal === 'Active') ? 'bg-success' : 'bg-warning text-dark';
+
+                            // Фамилия и имя
+                            $fullName = trim(($user['prenom'] ?? '') . ' ' . ($user['nom'] ?? ''));
                             ?>
                             <tr>
                                 <td class="text-center fw-bold text-secondary"><?= $user['id']; ?></td>
@@ -93,6 +113,11 @@ try {
                                 <td class="fw-bold">
                                     <i class="bi bi-person-circle me-1 text-primary"></i>
                                     <?= htmlspecialchars($user['username']); ?>
+                                </td>
+
+                                <!-- Nom & Prénom -->
+                                <td>
+                                    <?= !empty($fullName) ? htmlspecialchars($fullName) : '<span class="text-muted">—</span>'; ?>
                                 </td>
 
                                 <!-- Type -->
@@ -110,8 +135,18 @@ try {
                                     <?= !empty($user['created_at']) ? date('d.m.Y H:i', strtotime($user['created_at'])) : '—'; ?>
                                 </td>
 
+                                <!-- Date de modification -->
+                                <td class="text-nowrap text-muted">
+                                    <?= !empty($user['updated_at']) ? date('d.m.Y H:i', strtotime($user['updated_at'])) : '—'; ?>
+                                </td>
+
                                 <!-- Actions -->
                                 <td class="text-center text-nowrap">
+                                    <a href="user_edit.php?id=<?= $user['id']; ?>"
+                                       class="btn btn-sm btn-outline-primary me-1"
+                                       title="Modifier">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
                                     <a href="users_list.php?delete_id=<?= $user['id']; ?>"
                                        class="btn btn-sm btn-outline-danger"
                                        onclick="return confirm('Êtes-vous sûr de vouloir supprimer cet utilisateur ?');"

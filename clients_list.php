@@ -5,6 +5,13 @@ error_reporting(E_ALL);
 
 // Подключаем базу данных
 require_once 'db.php';
+require_once 'header.php'; // Подключаем хедер первым, чтобы сессия точно работала
+
+// 1. Защита: если пользователь тип User, блокируем попытку удаления через URL
+if (isset($_SESSION['type']) && $_SESSION['type'] === 'User' && isset($_GET['delete_id'])) {
+    header("Location: clients_list.php");
+    exit;
+}
 
 // Сброс фильтра поиска
 if (isset($_GET['clear_filter'])) {
@@ -12,14 +19,13 @@ if (isset($_GET['clear_filter'])) {
     exit;
 }
 
-// 1. Сначала обрабатываем удаление клиента (до отправки любых HTML-данных и шапки!)
+// 2. Обрабатываем удаление клиента (доступно только для Admin и PowerUser)
 if (isset($_GET['delete_id'])) {
     $delete_id = (int)$_GET['delete_id'];
     try {
         $stmt = $pdo->prepare("DELETE FROM clients WHERE id = :id");
         $stmt->execute([':id' => $delete_id]);
 
-        // Перенаправление через JavaScript для полной защиты от ошибки headers already sent
         echo '<script>window.location.href = "clients_list.php?deleted=1";</script>';
         exit;
     } catch (PDOException $e) {
@@ -30,7 +36,7 @@ if (isset($_GET['delete_id'])) {
 // Получаем поисковый запрос
 $search = trim($_GET['search'] ?? '');
 
-// Безопасное извлечение только цифр без использования JIT-компилятора регулярных выражений
+// Безопасное извлечение только цифр
 $search_clean = '';
 for ($i = 0; $i < strlen($search); $i++) {
     if ($search[$i] >= '0' && $search[$i] <= '9') {
@@ -48,7 +54,6 @@ $allowed_sorts = [
         'adresse' => 'adresse'
 ];
 
-// Установка сортировки по умолчанию на 'nom' (название/фамилию) вместо 'id'
 $sort = $_GET['sort'] ?? 'nom';
 if (!array_key_exists($sort, $allowed_sorts)) {
     $sort = 'nom';
@@ -57,7 +62,7 @@ if (!array_key_exists($sort, $allowed_sorts)) {
 $order = strtolower($_GET['order'] ?? 'asc') === 'desc' ? 'DESC' : 'ASC';
 $next_order = ($order === 'ASC') ? 'desc' : 'asc';
 
-// 2. Загружаем список клиентов из базы данных с учетом поиска и сортировки
+// 3. Загружаем список клиентов из базы данных
 try {
     $sql = "SELECT * FROM clients WHERE 1=1";
     $params = [];
@@ -105,15 +110,11 @@ function sortLink($column, $label, $current_sort, $current_order, $search) {
     $url = 'clients_list.php?' . http_build_query($query_params);
     return '<a href="' . $url . '" class="text-decoration-none text-dark d-block">' . $label . $icon . '</a>';
 }
-
-// 3. Только теперь подключаем HTML-шапку
-require_once 'header.php';
 ?>
 
 <title>Liste des clients — NumériqueAide</title>
 
 <style>
-    /* Кастомный цвет шапки таблицы */
     .table-header-custom th {
         background-color: #82e89e !important;
         color: #020202 !important;
@@ -126,9 +127,13 @@ require_once 'header.php';
 <div class="container-fluid mt-4 px-4">
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h3 class="mb-0"><i class="bi bi-people me-2"></i>Liste des clients</h3>
-        <a href="add_client.php" class="btn btn-success">
-            <i class="bi bi-person-plus me-1"></i> Ajouter un client
-        </a>
+
+        <!-- Кнопка добавления видна только Admin и PowerUser -->
+        <?php if (isset($_SESSION['type']) && $_SESSION['type'] !== 'User'): ?>
+            <a href="add_client.php" class="btn btn-success">
+                <i class="bi bi-person-plus me-1"></i> Ajouter un client
+            </a>
+        <?php endif; ?>
     </div>
 
     <?php if (isset($_GET['deleted'])): ?>
@@ -198,9 +203,13 @@ require_once 'header.php';
                                 <td class="text-center fw-bold text-secondary"><?= $client['id']; ?></td>
 
                                 <td class="fw-bold">
-                                    <a href="edit_client.php?id=<?= (int)$client['id']; ?>" class="text-decoration-none text-dark" title="Modifier le client">
+                                    <?php if (isset($_SESSION['type']) && $_SESSION['type'] !== 'User'): ?>
+                                        <a href="edit_client.php?id=<?= (int)$client['id']; ?>" class="text-decoration-none text-dark" title="Modifier le client">
+                                            <?= htmlspecialchars(trim(($client['nom'] ?? '') . ' ' . ($client['prenom'] ?? ''))); ?>
+                                        </a>
+                                    <?php else: ?>
                                         <?= htmlspecialchars(trim(($client['nom'] ?? '') . ' ' . ($client['prenom'] ?? ''))); ?>
-                                    </a>
+                                    <?php endif; ?>
                                 </td>
 
                                 <td>
@@ -234,15 +243,19 @@ require_once 'header.php';
                                 <td><small class="text-muted"><?= !empty($client['notes']) ? htmlspecialchars($client['notes']) : '—'; ?></small></td>
 
                                 <td class="text-center text-nowrap">
-                                    <a href="edit_client.php?id=<?= $client['id']; ?>" class="btn btn-sm btn-outline-primary me-1" title="Modifier">
-                                        <i class="bi bi-pencil"></i>
-                                    </a>
-                                    <a href="clients_list.php?delete_id=<?= $client['id']; ?>"
-                                       class="btn btn-sm btn-outline-danger"
-                                       onclick="return confirm('Êtes-vous sûr de vouloir supprimer ce client?');"
-                                       title="Supprimer">
-                                        <i class="bi bi-trash"></i>
-                                    </a>
+                                    <?php if (isset($_SESSION['type']) && $_SESSION['type'] !== 'User'): ?>
+                                        <a href="edit_client.php?id=<?= $client['id']; ?>" class="btn btn-sm btn-outline-primary me-1" title="Modifier">
+                                            <i class="bi bi-pencil"></i>
+                                        </a>
+                                        <a href="clients_list.php?delete_id=<?= $client['id']; ?>"
+                                           class="btn btn-sm btn-outline-danger"
+                                           onclick="return confirm('Êtes-vous sûr de vouloir supprimer ce client?');"
+                                           title="Supprimer">
+                                            <i class="bi bi-trash"></i>
+                                        </a>
+                                    <?php else: ?>
+                                        <span class="text-muted">—</span>
+                                    <?php endif; ?>
                                 </td>
                             </tr>
                         <?php endforeach; ?>
@@ -256,7 +269,6 @@ require_once 'header.php';
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-    /* Автоматическое закрытие уведомлений через 5 секунд */
     setTimeout(function () {
         const alerts = document.querySelectorAll('.alert');
         alerts.forEach(function (alertElement) {

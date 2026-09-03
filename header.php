@@ -8,6 +8,9 @@ if (!isset($_SESSION['user_id'])) {
     header("Location: login.php");
     exit;
 }
+
+// Получаем тип текущего пользователя (по умолчанию User, если не задан)
+$userType = $_SESSION['type'] ?? 'User';
 ?>
 <!DOCTYPE html>
 <html lang="fr">
@@ -64,25 +67,37 @@ if (!isset($_SESSION['user_id'])) {
                 <li class="nav-item">
                     <a class="nav-link" href="clients_list.php"><i class="bi bi-people me-1"></i> Clients</a>
                 </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="purchases_list.php"><i class="bi bi-bag-check me-1"></i> Achats</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="reports.php"><i class="bi bi-file-earmark-bar-graph me-1"></i>Rapports</a>
-                </li>
-                <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
-                        <i class="bi bi-gear me-1"></i> Partenaires
-                    </a>
-                    <ul class="dropdown-menu">
-                        <li><a class="dropdown-item" href="platforms_list.php">Plateformes</a></li>
-                        <li><a class="dropdown-item" href="fournisseurs_list.php">Fournisseurs / Magasins</a></li>
-                    </ul>
-                </li>
+
+                <!-- Пункты ниже видны ТОЛЬКО для Admin и PowerUser -->
+                <?php if ($userType !== 'User'): ?>
+                    <li class="nav-item">
+                        <a class="nav-link" href="purchases_list.php"><i class="bi bi-bag-check me-1"></i> Achats</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="reports.php"><i class="bi bi-file-earmark-bar-graph me-1"></i> Rapports</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                            <i class="bi bi-gear me-1"></i> Partenaires
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="platforms_list.php">Plateformes</a></li>
+                            <li><a class="dropdown-item" href="fournisseurs_list.php">Fournisseurs / Magasins</a></li>
+                        </ul>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="users_list.php"><i class="bi bi-person-badge me-1"></i> Users</a>
+                    </li>
+                <?php endif; ?>
             </ul>
 
-            <!-- Кнопка выхода в самом правом краю -->
-            <div class="ms-auto">
+            <!-- Имя пользователя и кнопка выхода в правом краю -->
+            <div class="ms-auto d-flex align-items-center">
+                <span class="text-light me-3 small">
+                    <i class="bi bi-person-circle me-1 text-info"></i>
+                    <?= htmlspecialchars($_SESSION['username'] ?? ''); ?>
+                    <span class="text-muted ms-1">(<?= htmlspecialchars($userType); ?>)</span>
+                </span>
                 <a href="logout.php" class="btn btn-sm btn-outline-danger" title="Se déconnecter">
                     <i class="bi bi-box-arrow-right"></i> Déconnexion
                 </a>

@@ -15,6 +15,11 @@ error_reporting(E_ALL);
 
 require_once 'db.php';
 require_once 'header.php';
+// Если пользователь имеет тип User, запрещаем доступ и перенаправляем на главную
+if (isset($_SESSION['type']) && $_SESSION['type'] === 'User') {
+    header("Location: index.php");
+    exit;
+}
 
 $message = '';
 
