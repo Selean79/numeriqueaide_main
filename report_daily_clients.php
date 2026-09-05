@@ -33,6 +33,7 @@ $sql = "
     SELECT 
         c.id_commande,
         c.date_commande,
+        c.rdv_time,
         c.commentaire,
         c.notes AS order_notes,
         cl.nom,
@@ -45,7 +46,7 @@ $sql = "
     INNER JOIN clients cl ON c.client_id = cl.id
     LEFT JOIN platforms p ON c.platform_id = p.id
     WHERE c.date_commande = :report_date
-    ORDER BY c.id_commande ASC
+    ORDER BY c.rdv_time ASC, c.id_commande ASC
 ";
 
 $stmt = $pdo->prepare($sql);
@@ -59,14 +60,16 @@ if ($export === 'csv') {
     $output = fopen('php://output', 'w');
     fputs($output, "\xEF\xBB\xBF");
 
-    fputcsv($output, ['ID', 'Client', 'Téléphone', 'Adresse', 'Plateforme', 'Description des travaux / Notes'], ';');
+    fputcsv($output, ['ID', 'Heure', 'Client', 'Téléphone', 'Adresse', 'Plateforme', 'Description des travaux / Notes'], ';');
 
     foreach ($daily_orders as $row) {
         $clientName = trim(($row['nom'] ?? '') . ' ' . ($row['prenom'] ?? ''));
         $description = implode(' | ', array_filter([$row['commentaire'], $row['order_notes']]));
+        $timeStr = !empty($row['rdv_time']) ? substr($row['rdv_time'], 0, 5) : '—';
 
         fputcsv($output, [
                 '#' . $row['id_commande'],
+                $timeStr,
                 $clientName ?: '—',
                 $row['telephone'] ?: '—',
                 $row['adresse'] ?: '—',
@@ -86,6 +89,18 @@ require_once 'header.php';
 
 <!-- Подключение стилей Flatpickr -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+
+<style>
+    .rdv-time-badge {
+        background-color: #e2e8f0;
+        color: #1e293b;
+        padding: 3px 8px;
+        border-radius: 4px;
+        font-weight: 600;
+        display: inline-block;
+        font-size: 0.9rem;
+    }
+</style>
 
 <div class="container-fluid mt-4 px-4">
     <div class="d-flex justify-content-between align-items-center mb-3">
@@ -136,7 +151,8 @@ require_once 'header.php';
                 <table class="table table-hover align-middle mb-0 w-100">
                     <thead class="table-light">
                     <tr>
-                        <th class="text-nowrap" style="width: 70px;">ID</th>
+                        <th class="text-nowrap" style="width: 80px;">ID</th>
+                        <th class="text-nowrap" style="width: 100px;">Heure</th>
                         <th class="text-nowrap" style="width: 180px;">Client</th>
                         <th class="text-nowrap" style="width: 160px;">Téléphone</th>
                         <th class="text-nowrap" style="width: 320px;">Adresse</th>
@@ -147,7 +163,7 @@ require_once 'header.php';
                     <tbody>
                     <?php if (empty($daily_orders)): ?>
                         <tr>
-                            <td colspan="6" class="text-center py-4 text-muted">
+                            <td colspan="7" class="text-center py-4 text-muted">
                                 <i class="bi bi-info-circle me-1"></i> Aucune commande n'est planifiée pour la date sélectionnée.
                             </td>
                         </tr>
@@ -166,6 +182,15 @@ require_once 'header.php';
                             ?>
                             <tr>
                                 <td class="fw-bold text-nowrap">#<?= $row['id_commande']; ?></td>
+                                <td class="text-nowrap">
+                                    <?php if (!empty($row['rdv_time'])): ?>
+                                        <span class="rdv-time-badge">
+                                            <i class="bi bi-clock me-1"></i><?= substr($row['rdv_time'], 0, 5); ?>
+                                        </span>
+                                    <?php else: ?>
+                                        <span class="text-muted">—</span>
+                                    <?php endif; ?>
+                                </td>
                                 <td class="fw-semibold text-nowrap">
                                     <?= !empty($clientName) ? htmlspecialchars($clientName) : '<span class="text-muted">—</span>'; ?>
 
