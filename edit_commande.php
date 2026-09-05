@@ -29,11 +29,12 @@ $form = [
         'id_commande'        => $order['id_commande'] ?? '',
         'client_id'          => $order['client_id'] ?? '',
         'platform_id'        => $order['platform_id'] ?? '',
-        'payment_method_id' => $order['payment_method_id'] ?? '',
+        'payment_method_id'  => $order['payment_method_id'] ?? '',
         'facture_id'         => $order['facture_id'] ?? '',
         'date_commande'      => !empty($order['date_commande'])
                 ? date('d/m/Y', strtotime($order['date_commande']))
                 : '',
+        'rdv_time'           => !empty($order['rdv_time']) ? substr($order['rdv_time'], 0, 5) : '',
         'date_paiement'      => !empty($order['date_paiement'])
                 ? date('d/m/Y', strtotime($order['date_paiement']))
                 : '',
@@ -62,6 +63,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $form['facture_id'] = !empty($_POST['facture_id']) ? (int)$_POST['facture_id'] : '';
 
     $form['date_commande'] = trim($_POST['date_commande'] ?? '');
+    $form['rdv_time'] = trim($_POST['rdv_time'] ?? '');
     $form['date_paiement'] = trim($_POST['date_paiement'] ?? '');
     $form['montant'] = trim($_POST['montant'] ?? '');
     $form['statut'] = $_POST['statut'] ?? 'Prévu';
@@ -83,6 +85,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $date_commande = sprintf('%04d-%02d-%02d', $year, $month, $day);
         }
     }
+
+    // Время встречи (rdv_time)
+    $rdv_time = !empty($form['rdv_time']) ? $form['rdv_time'] . ':00' : null;
 
     // Конвертация даты оплаты
     $date_paiement = null;
@@ -115,6 +120,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 payment_method_id = :payment_method_id,
                 facture_id         = :facture_id,
                 date_commande      = :date_commande,
+                rdv_time           = :rdv_time,
                 date_paiement      = :date_paiement,
                 montant            = :montant,
                 statut             = :statut,
@@ -132,9 +138,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 ':id_commande'        => $form['id_commande'],
                 ':client_id'          => $form['client_id'],
                 ':platform_id'        => $form['platform_id'],
-                ':payment_method_id' => $form['payment_method_id'],
+                ':payment_method_id'  => $form['payment_method_id'],
                 ':facture_id'         => $form['facture_id'] ?: null,
                 ':date_commande'      => $date_commande,
+                ':rdv_time'           => $rdv_time,
                 ':date_paiement'      => $date_paiement,
                 ':montant'            => $montant,
                 ':statut'             => $form['statut'],
@@ -241,11 +248,31 @@ require_once 'header.php';
 
                     <div class="col-md-4">
                         <label class="form-label fw-semibold">
+                            Heure de rdv
+                        </label>
+                        <select name="rdv_time" class="form-select">
+                            <option value="">-- Heure --</option>
+                            <?php
+                            for ($h = 7; $h <= 21; $h++) {
+                                for ($m = 0; $m < 60; $m += 30) {
+                                    $timeStr = sprintf('%02d:%02d', $h, $m);
+                                    $selected = ($form['rdv_time'] === $timeStr) ? 'selected' : '';
+                                    echo '<option value="' . $timeStr . '" ' . $selected . '>' . $timeStr . '</option>';
+                                }
+                            }
+                            ?>
+                        </select>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold">
                             Montant (€) <span class="required-star">*</span>
                         </label>
                         <input type="number" step="0.01" min="0.01" name="montant" class="form-control" value="<?= htmlspecialchars($form['montant']); ?>" required oninvalid="this.setCustomValidity('Veuillez saisir un montant supérieur à 0.')" oninput="this.setCustomValidity('')">
                     </div>
+                </div>
 
+                <div class="row g-3 mb-3">
                     <div class="col-md-4">
                         <label class="form-label fw-semibold">Statut</label>
                         <?php $st = mb_strtolower(trim($form['statut'] ?? '')); ?>
@@ -256,10 +283,8 @@ require_once 'header.php';
                             <option value="Annulée" <?= ($st === 'annulée' || $st === 'annulee') ? 'selected' : ''; ?>>Annulée</option>
                         </select>
                     </div>
-                </div>
 
-                <div class="row g-3 mb-3">
-                    <div class="col-md-3">
+                    <div class="col-md-4">
                         <label class="form-label fw-semibold">
                             Plateforme / Service <span class="required-star">*</span>
                         </label>
@@ -273,7 +298,7 @@ require_once 'header.php';
                         </select>
                     </div>
 
-                    <div class="col-md-3">
+                    <div class="col-md-4">
                         <label class="form-label fw-semibold">
                             Mode de paiement <span class="required-star">*</span>
                         </label>
@@ -286,8 +311,10 @@ require_once 'header.php';
                             <?php endforeach; ?>
                         </select>
                     </div>
+                </div>
 
-                    <div class="col-md-3">
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
                         <label class="form-label fw-semibold text-primary">
                             <i class="bi bi-file-earmark-text me-1"></i>Facture
                         </label>
@@ -301,7 +328,7 @@ require_once 'header.php';
                         </select>
                     </div>
 
-                    <div class="col-md-3">
+                    <div class="col-md-6">
                         <label class="form-label fw-semibold text-success">Date de paiement</label>
                         <input type="text" name="date_paiement" class="form-control js-date-picker" placeholder="jj/mm/aaaa" value="<?= htmlspecialchars($form['date_paiement']); ?>">
                     </div>

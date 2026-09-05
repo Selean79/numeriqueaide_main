@@ -9,28 +9,32 @@ $error = '';
 
 // 1. Traitement de la soumission du formulaire de création de commande
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $id_commande       = trim($_POST['id_commande'] ?? '');
+    $id_commande         = trim($_POST['id_commande'] ?? '');
 
-    // Преобразование даты из формата ДД/ММ/ГГГГ (27/08/2026) в формат MySQL (2026-08-27)
-    $raw_date          = trim($_POST['date_commande'] ?? '');
-    $date_commande     = !empty($raw_date) ? date('Y-m-d', strtotime(str_replace('/', '-', $raw_date))) : '';
+    // Преобразование даты из формата ДД/ММ/ГГГГ в формат MySQL (ГГГГ-ММ-ДД)
+    $raw_date            = trim($_POST['date_commande'] ?? '');
+    $date_commande       = !empty($raw_date) ? date('Y-m-d', strtotime(str_replace('/', '-', $raw_date))) : '';
 
-    $client_id         = !empty($_POST['client_id']) ? (int)$_POST['client_id'] : null;
-    $platform_id       = !empty($_POST['platform_id']) ? (int)$_POST['platform_id'] : null;
-    $payment_method_id = !empty($_POST['payment_method_id']) ? (int)$_POST['payment_method_id'] : null;
-    $facture_id        = !empty($_POST['facture_id']) ? (int)$_POST['facture_id'] : null;
+    // Время рандеву (rdv_time)
+    $rdv_time            = trim($_POST['rdv_time'] ?? '');
+    $rdv_time            = !empty($rdv_time) ? $rdv_time : null;
 
-    $montant_raw       = trim($_POST['montant'] ?? '');
-    $montant           = str_replace(',', '.', $montant_raw);
+    $client_id           = !empty($_POST['client_id']) ? (int)$_POST['client_id'] : null;
+    $platform_id         = !empty($_POST['platform_id']) ? (int)$_POST['platform_id'] : null;
+    $payment_method_id   = !empty($_POST['payment_method_id']) ? (int)$_POST['payment_method_id'] : null;
+    $facture_id          = !empty($_POST['facture_id']) ? (int)$_POST['facture_id'] : null;
 
-    $statut            = trim($_POST['statut'] ?? 'Prévu');
-    $notes             = trim($_POST['notes'] ?? '');
-    $commentaire       = trim($_POST['commentaire'] ?? '');
+    $montant_raw         = trim($_POST['montant'] ?? '');
+    $montant             = str_replace(',', '.', $montant_raw);
 
-    $calcul_impot      = isset($_POST['calcul_impot']) ? 1 : 0;
-    $calcul_epargne    = isset($_POST['calcul_epargne']) ? 1 : 0;
-    $impot_paye        = isset($_POST['impot_paye']) ? 1 : 0;
-    $epargne_paye      = isset($_POST['epargne_paye']) ? 1 : 0;
+    $statut              = trim($_POST['statut'] ?? 'Prévu');
+    $notes               = trim($_POST['notes'] ?? '');
+    $commentaire         = trim($_POST['commentaire'] ?? '');
+
+    $calcul_impot        = isset($_POST['calcul_impot']) ? 1 : 0;
+    $calcul_epargne      = isset($_POST['calcul_epargne']) ? 1 : 0;
+    $impot_paye          = isset($_POST['impot_paye']) ? 1 : 0;
+    $epargne_paye        = isset($_POST['epargne_paye']) ? 1 : 0;
 
     // Validation des champs obligatoires et du format numérique en PHP
     if (empty($client_id)) {
@@ -47,11 +51,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         try {
             $stmt = $pdo->prepare("
                 INSERT INTO commandes (
-                    id_commande, date_commande, client_id, platform_id, payment_method_id, 
+                    id_commande, date_commande, rdv_time, client_id, platform_id, payment_method_id, 
                     facture_id, montant, statut, notes, commentaire, 
                     calcul_impot, calcul_epargne, impot_paye, epargne_paye
                 ) VALUES (
-                    :id_commande, :date_commande, :client_id, :platform_id, :payment_method_id, 
+                    :id_commande, :date_commande, :rdv_time, :client_id, :platform_id, :payment_method_id, 
                     :facture_id, :montant, :statut, :notes, :commentaire, 
                     :calcul_impot, :calcul_epargne, :impot_paye, :epargne_paye
                 )
@@ -59,6 +63,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt->execute([
                     ':id_commande'       => $id_commande,
                     ':date_commande'     => $date_commande,
+                    ':rdv_time'          => $rdv_time,
                     ':client_id'         => $client_id,
                     ':platform_id'       => $platform_id,
                     ':payment_method_id' => $payment_method_id,
@@ -158,11 +163,28 @@ require_once 'header.php';
                 </div>
 
                 <div class="row">
+                    <!-- Поле выбора даты заказа -->
                     <div class="col-md-4 mb-3">
                         <label class="form-label fw-semibold small text-muted">Date de commande</label>
-                        <!-- Поле типа text с id для подключения Flatpickr -->
                         <input type="text" name="date_commande" id="date_commande" class="form-control bg-white" required value="<?= date('d/m/Y'); ?>">
                     </div>
+
+                    <!-- Выпадающий список времени рандеву с шагом 30 минут -->
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label fw-semibold small text-muted">Heure du rendez-vous</label>
+                        <select name="rdv_time" class="form-select bg-white">
+                            <option value="">-- Choisir l'heure --</option>
+                            <?php
+                            $start = strtotime('08:00');
+                            $end = strtotime('20:00');
+                            for ($time = $start; $time <= $end; $time += 1800) {
+                                $timeFormatted = date('H:i', $time);
+                                echo '<option value="' . $timeFormatted . '">' . $timeFormatted . '</option>';
+                            }
+                            ?>
+                        </select>
+                    </div>
+
                     <div class="col-md-4 mb-3">
                         <label class="form-label fw-semibold small text-muted">Montant (€) *</label>
                         <div class="input-group">
@@ -173,6 +195,9 @@ require_once 'header.php';
                             <span class="input-group-text">€</span>
                         </div>
                     </div>
+                </div>
+
+                <div class="row">
                     <div class="col-md-4 mb-3">
                         <label class="form-label fw-semibold small text-muted">Statut</label>
                         <select name="statut" class="form-select">
@@ -182,9 +207,6 @@ require_once 'header.php';
                             <option value="Annulée">Annulée</option>
                         </select>
                     </div>
-                </div>
-
-                <div class="row">
                     <div class="col-md-4 mb-3">
                         <label class="form-label fw-semibold small text-muted">Plateforme / Service *</label>
                         <select name="platform_id" class="form-select" required
@@ -207,7 +229,10 @@ require_once 'header.php';
                             <?php endforeach; ?>
                         </select>
                     </div>
-                    <div class="col-md-4 mb-3">
+                </div>
+
+                <div class="row">
+                    <div class="col-md-12 mb-3">
                         <label class="form-label fw-semibold small text-muted">Facture associée</label>
                         <select name="facture_id" class="form-select">
                             <option value="">- Pas de facture -</option>
@@ -218,7 +243,7 @@ require_once 'header.php';
                     </div>
                 </div>
 
-                <!-- Bloc des paramètres de calculs (Symphétrique 50% / 50%) -->
+                <!-- Bloc des paramètres de calculs -->
                 <div class="row bg-light p-3 rounded mb-3 border">
                     <div class="col-md-6 mb-3 mb-md-0">
                         <label class="form-label fw-semibold small text-muted mb-1">Calcul taxe (€)</label>

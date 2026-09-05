@@ -155,6 +155,7 @@ if (
                     INSERT INTO commandes (
                         id_commande,
                         date_commande,
+                        rdv_time,
                         client_id,
                         platform_id,
                         payment_method_id,
@@ -172,6 +173,7 @@ if (
                     VALUES (
                         :id_commande,
                         :date_commande,
+                        :rdv_time,
                         :client_id,
                         :platform_id,
                         :payment_method_id,
@@ -191,21 +193,22 @@ if (
                 $insertStmt = $pdo->prepare($insertSql);
 
                 $insertStmt->execute([
-                        ':id_commande'        => $next_order_id,
-                        ':date_commande'      => $srcOrder['date_commande'],
-                        ':client_id'          => $srcOrder['client_id'],
-                        ':platform_id'        => $srcOrder['platform_id'],
+                        ':id_commande'       => $next_order_id,
+                        ':date_commande'     => $srcOrder['date_commande'],
+                        ':rdv_time'          => $srcOrder['rdv_time'] ?? null,
+                        ':client_id'         => $srcOrder['client_id'],
+                        ':platform_id'       => $srcOrder['platform_id'],
                         ':payment_method_id' => $srcOrder['payment_method_id'],
-                        ':facture_id'         => $srcOrder['facture_id'],
-                        ':montant'            => $srcOrder['montant'],
-                        ':statut'             => 'Prévu',
-                        ':date_paiement'      => null,
-                        ':notes'              => $srcOrder['notes'],
-                        ':commentaire'        => $srcOrder['commentaire'],
-                        ':calcul_impot'       => $srcOrder['calcul_impot'],
-                        ':calcul_epargne'     => $srcOrder['calcul_epargne'],
-                        ':impot_paye'         => 0,
-                        ':epargne_paye'       => 0
+                        ':facture_id'        => $srcOrder['facture_id'],
+                        ':montant'           => $srcOrder['montant'],
+                        ':statut'            => 'Prévu',
+                        ':date_paiement'     => null,
+                        ':notes'             => $srcOrder['notes'],
+                        ':commentaire'       => $srcOrder['commentaire'],
+                        ':calcul_impot'      => $srcOrder['calcul_impot'],
+                        ':calcul_epargne'    => $srcOrder['calcul_epargne'],
+                        ':impot_paye'        => 0,
+                        ':epargne_paye'      => 0
                 ]);
 
                 header("Location: commandes_list.php?copied=1");
@@ -343,11 +346,11 @@ $selected_year =
         (int)date('Y');
 
 
-//*
-//--------------------------------------------------------------------------
-//| Управление сортировкой
-//|--------------------------------------------------------------------------
-//*/
+/*
+|--------------------------------------------------------------------------
+| Управление сортировкой
+|--------------------------------------------------------------------------
+*/
 if (isset($_GET['sort_col'])) {
 
     $requested_col =
@@ -382,7 +385,9 @@ $sort_col =
 
 $sort_dir =
         $_SESSION['cmd_sort_dir'] ??
-        'ASC'; // Изменено с DESC на ASC
+        'ASC';
+
+
 /*
 |--------------------------------------------------------------------------
 | Определение названия колонки платформы
@@ -581,6 +586,7 @@ $sql_sort_field =
 $sql .= "
     ORDER BY
         $sql_sort_field $sort_dir,
+        c.rdv_time ASC,
         c.id_commande DESC
 ";
 
@@ -713,23 +719,10 @@ require_once 'header.php';
 
 
 <style>
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | Разделитель между заказами
-    |--------------------------------------------------------------------------
-    */
     .order-divider {
         border-bottom: 3px solid #94a3b8 !important;
     }
 
-
-    /*
-    |--------------------------------------------------------------------------
-    | Цвета заметок
-    |--------------------------------------------------------------------------
-    */
     .note-comment {
         background-color: #d9f2df;
     }
@@ -738,12 +731,6 @@ require_once 'header.php';
         background-color: #fdf3cf;
     }
 
-
-    /*
-    |--------------------------------------------------------------------------
-    | Чередование строк
-    |--------------------------------------------------------------------------
-    */
     .order-group-even {
         background-color: #f8f9fb;
     }
@@ -752,12 +739,6 @@ require_once 'header.php';
         background-color: #ffffff;
     }
 
-
-    /*
-    |--------------------------------------------------------------------------
-    | Заголовок таблицы
-    |--------------------------------------------------------------------------
-    */
     .table-header-custom th,
     .table-header-custom td {
         background-color: #82e89e !important;
@@ -768,45 +749,25 @@ require_once 'header.php';
         color: #020202 !important;
     }
 
-
-    /*
-    |--------------------------------------------------------------------------
-    | Итоговые badges
-    |--------------------------------------------------------------------------
-    */
     .totals-badge {
         background-color: #000000 !important;
         color: #ffffff !important;
-
         font-weight: bold !important;
-
         white-space: nowrap !important;
-
         padding: 2px 8px;
-
         border-radius: 4px;
-
         display: inline-block;
     }
 
+    .rdv-time-badge {
+        background-color: #e2e8f0;
+        color: #1e293b;
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-weight: 600;
+        display: inline-block;
+    }
 
-    /*
-    |--------------------------------------------------------------------------
-    | Actions
-    |
-    | ВАЖНО:
-    | Сам столбец Actions управляется классом d-none.
-    | Пока ничего не выбрано — header и td скрыты.
-    |--------------------------------------------------------------------------
-    */
-    /*
-    |--------------------------------------------------------------------------
-    | Плавающие кнопки массовых действий
-    |
-    | Кнопки находятся на обычном месте над таблицей.
-    | При прокрутке страницы они остаются видимыми сверху.
-    |--------------------------------------------------------------------------
-    */
     #bulkActionButtons {
         position: sticky;
         top: 10px;
@@ -817,54 +778,27 @@ require_once 'header.php';
         vertical-align: middle;
     }
 
-
-    /*
-    |--------------------------------------------------------------------------
-    | Кнопки Actions
-    |
-    | По умолчанию кнопки невидимы.
-    | Они появляются только внутри выбранной строки.
-    |--------------------------------------------------------------------------
-    */
     .order-actions {
         opacity: 0;
         visibility: hidden;
-
         transition:
                 opacity 0.2s ease-in-out,
                 visibility 0.2s ease-in-out;
     }
 
-
-    /*
-    |--------------------------------------------------------------------------
-    | Показываем кнопки только выбранной строки
-    |--------------------------------------------------------------------------
-    */
     tr.row-selected .order-actions {
         opacity: 1;
         visibility: visible;
     }
 
-
-    /*
-    |--------------------------------------------------------------------------
-    | Подсветка выбранной строки
-    |--------------------------------------------------------------------------
-    */
     tr.row-selected {
         background-color: #eef7ff !important;
     }
 
-
-    /*
-    |--------------------------------------------------------------------------
-    | Немного увеличиваем область иконок
-    |--------------------------------------------------------------------------
-    */
     .order-actions .btn {
         min-width: 34px;
     }
+
     body {
         background-color: #d3d1d1 !important;
     }
@@ -873,151 +807,83 @@ require_once 'header.php';
 
 <div class="container-fluid mt-4 px-4">
 
-
-    <!--
-    |--------------------------------------------------------------------------
-    | Заголовок страницы
-    |--------------------------------------------------------------------------
-    -->
     <div class="d-flex justify-content-between align-items-center mb-3">
-
         <h3 class="mb-0">
-
             <i class="bi bi-cart-check me-2"></i>
-
             Liste des commandes
-
         </h3>
-
 
         <a
                 href="add_commande.php"
                 class="btn btn-success"
         >
-
             <i class="bi bi-plus-circle me-1"></i>
-
             Créer une commande
-
         </a>
-
     </div>
 
-
-
-    <!--
-    |--------------------------------------------------------------------------
-    | Сообщение удаления
-    |--------------------------------------------------------------------------
-    -->
     <?php if (isset($_GET['deleted'])): ?>
-
         <div
                 class="alert alert-warning alert-dismissible fade show"
                 role="alert"
         >
-
             <?php if ($_GET['deleted'] === 'multi'): ?>
-
                 Sélection de commandes supprimée avec succès!
-
             <?php else: ?>
-
                 La commande a été supprimée avec succès!
-
             <?php endif; ?>
-
 
             <button
                     type="button"
                     class="btn-close"
                     data-bs-dismiss="alert"
             ></button>
-
         </div>
-
     <?php endif; ?>
 
-
-
-    <!--
-    |--------------------------------------------------------------------------
-    | Сообщение копирования
-    |--------------------------------------------------------------------------
-    -->
     <?php if (isset($_GET['copied'])): ?>
-
         <div
                 class="alert alert-success alert-dismissible fade show"
                 role="alert"
         >
-
             La commande a été copiée avec succès!
-
 
             <button
                     type="button"
                     class="btn-close"
                     data-bs-dismiss="alert"
             ></button>
-
         </div>
-
     <?php endif; ?>
 
-
-
-    <!--
-    |--------------------------------------------------------------------------
-    | Ошибка
-    |--------------------------------------------------------------------------
-    -->
     <?php if (isset($error_message)): ?>
-
         <div
                 class="alert alert-danger alert-dismissible fade show"
                 role="alert"
         >
-
             <?= htmlspecialchars($error_message); ?>
-
 
             <button
                     type="button"
                     class="btn-close"
                     data-bs-dismiss="alert"
             ></button>
-
         </div>
-
     <?php endif; ?>
 
-
-
-    <!--
-    |--------------------------------------------------------------------------
-    | Фильтры
-    |--------------------------------------------------------------------------
-    -->
     <div class="card shadow-sm mb-4">
-
         <div class="card-body">
-
             <form
                     method="GET"
                     class="row g-2 align-items-end"
             >
 
-
-                <!-- Поиск -->
                 <div class="col-md-3">
-
                     <label
                             class="form-label small text-muted mb-1"
                     >
                         Recherche
                     </label>
-
 
                     <input
                             type="text"
@@ -1026,35 +892,25 @@ require_once 'header.php';
                             placeholder="numéro de commande, client..."
                             value="<?= htmlspecialchars($search); ?>"
                     >
-
                 </div>
 
-
-
-                <!-- Месяц -->
                 <div class="col-md-2">
-
                     <label
                             class="form-label small text-muted mb-1"
                     >
                         Mois
                     </label>
 
-
                     <select
                             name="month"
                             class="form-select"
                     >
-
                         <option value="">
                             Tout
                         </option>
 
-
                         <?php
-
                         $monthNames = [
-
                                 1  => 'Janvier',
                                 2  => 'Février',
                                 3  => 'Mars',
@@ -1067,16 +923,13 @@ require_once 'header.php';
                                 10 => 'Octobre',
                                 11 => 'Novembre',
                                 12 => 'Décembre'
-
                         ];
 
                         foreach (
                                 $monthNames
                                 as $mNum => $mName
                         ):
-
                             ?>
-
                             <option
                                     value="<?= $mNum; ?>"
                                     <?= (
@@ -1086,41 +939,28 @@ require_once 'header.php';
                                             : ''
                                     ?>
                             >
-
                                 <?= $mName; ?>
-
                             </option>
-
                         <?php endforeach; ?>
-
                     </select>
-
                 </div>
 
-
-
-                <!-- Год -->
                 <div class="col-md-2">
-
                     <label
                             class="form-label small text-muted mb-1"
                     >
                         Année
                     </label>
 
-
                     <select
                             name="year"
                             class="form-select"
                     >
-
                         <option value="">
                             Все
                         </option>
 
-
                         <?php
-
                         $currentYear =
                                 (int)date('Y');
 
@@ -1129,9 +969,7 @@ require_once 'header.php';
                                 $y <= $currentYear + 1;
                                 $y++
                         ):
-
                             ?>
-
                             <option
                                     value="<?= $y; ?>"
                                     <?= (
@@ -1141,38 +979,26 @@ require_once 'header.php';
                                             : ''
                                     ?>
                             >
-
                                 <?= $y; ?>
-
                             </option>
-
                         <?php endfor; ?>
-
                     </select>
-
                 </div>
 
-
-
-                <!-- Статус -->
                 <div class="col-md-3">
-
                     <label
                             class="form-label small text-muted mb-1"
                     >
                         Statut
                     </label>
 
-
                     <select
                             name="status"
                             class="form-select"
                     >
-
                         <option value="">
                             Tous les statuts
                         </option>
-
 
                         <option
                                 value="Prévu"
@@ -1184,7 +1010,6 @@ require_once 'header.php';
                             Prévu
                         </option>
 
-
                         <option
                                 value="En cours"
                                 <?= $status_filter === 'En cours'
@@ -1194,7 +1019,6 @@ require_once 'header.php';
                         >
                             En cours
                         </option>
-
 
                         <option
                                 value="Payé"
@@ -1206,7 +1030,6 @@ require_once 'header.php';
                             Payé
                         </option>
 
-
                         <option
                                 value="Annulée"
                                 <?= $status_filter === 'Annulée'
@@ -1216,86 +1039,49 @@ require_once 'header.php';
                         >
                             Annulée
                         </option>
-
                     </select>
-
                 </div>
 
-
-
-                <!-- Кнопки -->
                 <div class="col-md-2 d-flex gap-1">
-
                     <button
                             type="submit"
                             class="btn btn-primary flex-grow-1"
                             title="Применить"
                     >
-
                         <i class="bi bi-search me-1"></i>
-
                         Trouver
-
                     </button>
-
 
                     <a
                             href="commandes_list.php?clear_filter=1"
                             class="btn btn-outline-secondary"
                             title="Сбросить фильтр"
                     >
-
                         <i class="bi bi-x-circle"></i>
-
                     </a>
-
                 </div>
 
-
             </form>
-
         </div>
-
     </div>
 
-
-
-    <!--
-    |--------------------------------------------------------------------------
-    | Форма массовых действий
-    |--------------------------------------------------------------------------
-    -->
     <form
             method="POST"
             id="bulkActionForm"
     >
 
-
-        <!--
-        |--------------------------------------------------------------------------
-        | Кнопки массовых действий
-        |--------------------------------------------------------------------------
-        -->
         <div id="bulkActionButtons" class="d-flex justify-content-end gap-2 mb-2">
 
-
-            <!-- Copy -->
             <button
                     type="submit"
                     name="bulk_copy"
                     id="bulkCopyBtn"
                     class="btn btn-success btn-sm d-none"
             >
-
                 <i class="bi bi-files me-1"></i>
-
                 Copy
-
             </button>
 
-
-
-            <!-- Delete -->
             <button
                     type="submit"
                     name="bulk_delete"
@@ -1307,59 +1093,33 @@ require_once 'header.php';
                     );
                 "
             >
-
                 <i class="bi bi-trash me-1"></i>
-
                 Supprimer la sélection
-
             </button>
 
         </div>
 
-
-
-        <!--
-        |--------------------------------------------------------------------------
-        | Таблица
-        |--------------------------------------------------------------------------
-        -->
         <div class="card shadow-sm">
-
             <div class="card-body p-0">
-
                 <div class="table-responsive">
-
                     <table
                             class="table table-hover align-middle mb-0"
                             style="min-width: 1200px;"
                     >
 
-
-                        <!--
-                        |--------------------------------------------------------------------------
-                        | THEAD
-                        |--------------------------------------------------------------------------
-                        -->
                         <thead class="table-header-custom">
-
                         <tr>
 
-
-                            <!-- Select All -->
                             <th
                                     style="width: 40px;"
                                     class="text-center"
                             >
-
                                 <input
                                         type="checkbox"
                                         class="form-check-input"
                                         id="selectAll"
                                 >
-
                             </th>
-
-
 
                             <?php
                             renderTh(
@@ -1369,7 +1129,6 @@ require_once 'header.php';
                             );
                             ?>
 
-
                             <?php
                             renderTh(
                                     'date_commande',
@@ -1377,7 +1136,6 @@ require_once 'header.php';
                                     'text-nowrap'
                             );
                             ?>
-
 
                             <?php
                             renderTh(
@@ -1387,7 +1145,6 @@ require_once 'header.php';
                             );
                             ?>
 
-
                             <?php
                             renderTh(
                                     'platform_name',
@@ -1395,7 +1152,6 @@ require_once 'header.php';
                                     'text-nowrap'
                             );
                             ?>
-
 
                             <?php
                             renderTh(
@@ -1405,7 +1161,6 @@ require_once 'header.php';
                             );
                             ?>
 
-
                             <?php
                             renderTh(
                                     'payment_method_name',
@@ -1413,7 +1168,6 @@ require_once 'header.php';
                                     'text-nowrap'
                             );
                             ?>
-
 
                             <?php
                             renderTh(
@@ -1423,7 +1177,6 @@ require_once 'header.php';
                             );
                             ?>
 
-
                             <th
                                     style="width: 150px;"
                                     class="text-center"
@@ -1431,14 +1184,12 @@ require_once 'header.php';
                                 Taxe
                             </th>
 
-
                             <th
                                     style="width: 150px;"
                                     class="text-center"
                             >
                                 Cumul
                             </th>
-
 
                             <?php
                             renderTh(
@@ -1448,14 +1199,6 @@ require_once 'header.php';
                             );
                             ?>
 
-
-                            <!--
-                            ==========================================================
-                            ACTIONS
-                            ==========================================================
-                            СКРЫТА ПРИ ЗАГРУЗКЕ СТРАНИЦЫ
-                            ==========================================================
-                            -->
                             <th
                                     id="actionsHeader"
                                     style="width: 100px;"
@@ -1464,49 +1207,29 @@ require_once 'header.php';
                                 Actions
                             </th>
 
-
                         </tr>
-
                         </thead>
 
-
-
-                        <!--
-                        |--------------------------------------------------------------------------
-                        | TBODY
-                        |--------------------------------------------------------------------------
-                        -->
                         <tbody>
 
-
                         <?php if (empty($commandes)): ?>
-
                             <tr>
-
                                 <td
                                         colspan="12"
                                         class="text-center py-4 text-muted"
                                 >
-
                                     Aucune commande trouvée
-
                                 </td>
-
                             </tr>
-
-
                         <?php else: ?>
-
 
                             <?php
                             $rowIndex = 0;
                             ?>
 
-
                             <?php foreach ($commandes as $order): ?>
 
                                 <?php
-
                                 $rowIndex++;
 
                                 $groupClass =
@@ -1516,67 +1239,39 @@ require_once 'header.php';
                                                 ? 'order-group-even'
                                                 : 'order-group-odd';
 
-
-                                /*
-                                |--------------------------------------------------------------------------
-                                | Montant
-                                |--------------------------------------------------------------------------
-                                */
                                 $montant =
                                         (float)(
                                                 $order['montant'] ?? 0
                                         );
 
-
-                                /*
-                                |--------------------------------------------------------------------------
-                                | Impôt
-                                |--------------------------------------------------------------------------
-                                */
                                 $impotVal =
                                         (float)(
                                                 $order['calcul_impot'] ?? 0
                                         );
-
 
                                 $impotAmount =
                                         ($impotVal == 1)
                                                 ? ($montant * 0.212)
                                                 : $impotVal;
 
-
-                                /*
-                                |--------------------------------------------------------------------------
-                                | Épargne
-                                |--------------------------------------------------------------------------
-                                */
                                 $epargneVal =
                                         (float)(
                                                 $order['calcul_epargne'] ?? 0
                                         );
-
 
                                 $epargneAmount =
                                         ($epargneVal == 1)
                                                 ? ($montant * 0.10)
                                                 : $epargneVal;
 
-
-                                /*
-                                |--------------------------------------------------------------------------
-                                | Plateforme
-                                |--------------------------------------------------------------------------
-                                */
                                 $platformName =
                                         trim(
                                                 $order['platform_name'] ??
                                                 'Privé'
                                         );
 
-
                                 $platBadgeClass =
                                         'bg-danger';
-
 
                                 if (
                                         strcasecmp(
@@ -1584,183 +1279,120 @@ require_once 'header.php';
                                                 'Yoojo'
                                         ) === 0
                                 ) {
-
                                     $platBadgeClass =
                                             'bg-primary';
-
                                 } elseif (
                                         strcasecmp(
                                                 $platformName,
                                                 'NeedHelp'
                                         ) === 0
                                 ) {
-
                                     $platBadgeClass =
                                             'bg-success';
                                 }
 
-
-                                /*
-                                |--------------------------------------------------------------------------
-                                | Statut
-                                |--------------------------------------------------------------------------
-                                */
                                 $statusRaw =
                                         trim(
                                                 $order['statut'] ?? ''
                                         );
 
-
                                 $statusBadge =
                                         'bg-secondary';
-
 
                                 $statusLabel =
                                         $statusRaw;
 
-
                                 $isCancelled =
                                         false;
-
 
                                 switch (
                                 mb_strtolower(
                                         $statusRaw
                                 )
                                 ) {
-
                                     case 'prévu':
                                     case 'prevu':
                                     case 'запланирован':
-
                                         $statusBadge =
                                                 'bg-success';
-
                                         $statusLabel =
                                                 'Prévu';
-
                                         break;
-
 
                                     case 'en cours':
                                     case 'en_cours':
                                     case 'в работе':
-
                                         $statusBadge =
                                                 'bg-warning text-dark';
-
                                         $statusLabel =
                                                 'En cours';
-
                                         break;
-
 
                                     case 'payé':
                                     case 'paye':
                                     case 'terminee':
                                     case 'оплачен':
-
                                         $statusBadge =
                                                 'bg-secondary';
-
                                         $statusLabel =
                                                 'Payé';
-
                                         break;
-
 
                                     case 'annulee':
                                     case 'annulée':
                                     case 'отменен':
-
                                         $isCancelled =
                                                 true;
-
                                         $statusLabel =
                                                 'Annulée';
-
                                         break;
                                 }
 
-
-                                /*
-                                |--------------------------------------------------------------------------
-                                | Отмененный заказ
-                                |--------------------------------------------------------------------------
-                                */
                                 if ($isCancelled) {
-
                                     $montant = 0;
                                     $impotAmount = 0;
                                     $epargneAmount = 0;
                                 }
 
-
-                                /*
-                                |--------------------------------------------------------------------------
-                                | Notes / Commentaire
-                                |--------------------------------------------------------------------------
-                                */
                                 $hasNotes =
                                         !empty($order['notes']) ||
                                         !empty($order['commentaire']);
-
                                 ?>
 
-
-                                <!--
-                                ==================================================================
-                                ОСНОВНАЯ СТРОКА ЗАКАЗА
-                                ==================================================================
-                                -->
                                 <tr
                                         id="order-<?= (int)$order['id']; ?>"
                                         class="<?= $groupClass; ?>"
                                 >
 
-
-                                    <!-- Checkbox -->
                                     <td class="text-center">
-
                                         <input
                                                 type="checkbox"
                                                 name="delete_ids[]"
                                                 value="<?= (int)$order['id']; ?>"
                                                 class="form-check-input order-checkbox"
                                         >
-
                                     </td>
 
-
-
-                                    <!-- № заказа -->
                                     <td class="fw-bold text-nowrap">
-
                                         <?= htmlspecialchars(
                                                 $order['id_commande']
                                         ); ?>
-
                                     </td>
 
-
-
-                                    <!-- Date -->
+                                    <!-- Date + Время рандеву (rdv_time) в виде бэджа -->
                                     <td class="text-nowrap">
-
                                         <?= date(
                                                 'd.m.Y',
                                                 strtotime(
                                                         $order['date_commande']
                                                 )
                                         ); ?>
-
+                                        <?php if (!empty($order['rdv_time'])): ?>
+                                            <br><small class="text-muted"><span class="rdv-time-badge mt-1"><i class="bi bi-clock me-1"></i><?= substr($order['rdv_time'], 0, 5); ?></span></small>
+                                        <?php endif; ?>
                                     </td>
 
-
-
-                                    <!-- Client -->
                                     <td class="fw-semibold">
-
                                         <?php if (!empty(trim($order['client_name']))): ?>
                                             <a href="edit_client.php?id=<?= (int)$order['client_id']; ?>&return_order=<?= (int)$order['id']; ?>"
                                                class="text-decoration-none text-dark"
@@ -1778,7 +1410,6 @@ require_once 'header.php';
                                             </i>
                                         <?php endif; ?>
 
-
                                         <?php
                                         if (
                                                 !empty(
@@ -1789,13 +1420,10 @@ require_once 'header.php';
                                                 )
                                         ):
                                             ?>
-
                                             <div
                                                     class="small text-muted fw-normal mt-1"
                                             >
 
-
-                                                <!-- Телефон -->
                                                 <?php
                                                 if (
                                                         !empty(
@@ -1803,32 +1431,22 @@ require_once 'header.php';
                                                         )
                                                 ):
                                                     ?>
-
                                                     <div>
-
                                                         <i
                                                                 class="bi bi-telephone me-1 text-primary"
                                                         ></i>
-
 
                                                         <a
                                                                 href="tel:<?= htmlspecialchars($order['client_telephone']); ?>"
                                                                 class="text-decoration-none text-muted"
                                                         >
-
                                                             <?= htmlspecialchars(
                                                                     $order['client_telephone']
                                                             ); ?>
-
                                                         </a>
-
                                                     </div>
-
                                                 <?php endif; ?>
 
-
-
-                                                <!-- Адрес -->
                                                 <?php
                                                 if (
                                                         !empty(
@@ -1836,59 +1454,38 @@ require_once 'header.php';
                                                         )
                                                 ):
                                                     ?>
-
                                                     <div>
-
                                                         <i
                                                                 class="bi bi-geo-alt me-1 text-danger"
                                                         ></i>
-
 
                                                         <a
                                                                 href="https://www.google.com/maps/search/?api=1&query=<?= urlencode($order['client_adresse']); ?>"
                                                                 target="_blank"
                                                                 class="text-decoration-none text-muted"
                                                         >
-
                                                             <?= htmlspecialchars(
                                                                     $order['client_adresse']
                                                             ); ?>
-
                                                         </a>
-
                                                     </div>
-
                                                 <?php endif; ?>
 
-
                                             </div>
-
                                         <?php endif; ?>
-
                                     </td>
 
-
-
-                                    <!-- Plateforme -->
                                     <td>
-
                                         <span
                                                 class="badge <?= $platBadgeClass; ?>"
                                         >
-
                                             <?= htmlspecialchars(
                                                     $platformName
                                             ); ?>
-
                                         </span>
-
                                     </td>
 
-
-
-                                    <!-- Facture -->
                                     <td>
-
                                         <?=
                                         !empty(
                                         $order['facture_number']
@@ -1900,14 +1497,9 @@ require_once 'header.php';
 
                                                 : '<span class="text-muted">—</span>';
                                         ?>
-
                                     </td>
 
-
-
-                                    <!-- Paiement -->
                                     <td>
-
                                         <?=
                                         !empty(
                                         $order['payment_method_name']
@@ -1919,38 +1511,26 @@ require_once 'header.php';
 
                                                 : '<span class="text-muted">—</span>';
                                         ?>
-
                                     </td>
 
-
-
-                                    <!-- Montant -->
                                     <td
                                             class="text-end fw-bold"
                                     >
-
                                         <?= number_format(
                                                 $montant,
                                                 2,
                                                 ',',
                                                 ' '
                                         ); ?>
-
                                         €
-
                                     </td>
 
-
-
-                                    <!-- Taxe -->
                                     <td
                                             class="text-center text-nowrap"
                                     >
-
                                         <?php
                                         if ($impotAmount > 0):
                                             ?>
-
 
                                             <?php
                                             if (
@@ -1959,12 +1539,10 @@ require_once 'header.php';
                                                     )
                                             ):
                                                 ?>
-
                                                 <span
                                                         class="badge bg-success"
                                                         title="Налог оплачен"
                                                 >
-
                                                     <i
                                                             class="bi bi-check-all me-1"
                                                     ></i>
@@ -1977,15 +1555,11 @@ require_once 'header.php';
                                                     ); ?>
 
                                                     €
-
                                                 </span>
-
                                             <?php else: ?>
-
                                                 <span
                                                         class="text-primary fw-semibold"
                                                 >
-
                                                     <i
                                                             class="bi bi-clock me-1"
                                                     ></i>
@@ -1998,35 +1572,24 @@ require_once 'header.php';
                                                     ); ?>
 
                                                     €
-
                                                 </span>
-
                                             <?php endif; ?>
 
-
                                         <?php else: ?>
-
                                             <span
                                                     class="text-muted"
                                             >
                                                 0,00 €
                                             </span>
-
                                         <?php endif; ?>
-
                                     </td>
 
-
-
-                                    <!-- Cumul -->
                                     <td
                                             class="text-center text-nowrap"
                                     >
-
                                         <?php
                                         if ($epargneAmount > 0):
                                             ?>
-
 
                                             <?php
                                             if (
@@ -2035,12 +1598,10 @@ require_once 'header.php';
                                                     )
                                             ):
                                                 ?>
-
                                                 <span
                                                         class="badge bg-success"
                                                         title="Накопления переведены"
                                                 >
-
                                                     <i
                                                             class="bi bi-check-all me-1"
                                                     ></i>
@@ -2053,15 +1614,11 @@ require_once 'header.php';
                                                     ); ?>
 
                                                     €
-
                                                 </span>
-
                                             <?php else: ?>
-
                                                 <span
                                                         class="text-primary fw-semibold"
                                                 >
-
                                                     <i
                                                             class="bi bi-clock me-1"
                                                     ></i>
@@ -2074,41 +1631,28 @@ require_once 'header.php';
                                                     ); ?>
 
                                                     €
-
                                                 </span>
-
                                             <?php endif; ?>
 
-
                                         <?php else: ?>
-
                                             <span
                                                     class="text-muted"
                                             >
                                                 0,00 €
                                             </span>
-
                                         <?php endif; ?>
-
                                     </td>
 
-
-
-                                    <!-- Statut -->
                                     <td class="text-center">
-
                                         <span
                                                 class="badge <?= $isCancelled
                                                         ? 'bg-danger'
                                                         : $statusBadge; ?>"
                                         >
-
                                             <?= htmlspecialchars(
                                                     $statusLabel
                                             ); ?>
-
                                         </span>
-
 
                                         <?php
                                         if (
@@ -2117,11 +1661,9 @@ require_once 'header.php';
                                                 )
                                         ):
                                             ?>
-
                                             <div
                                                     class="small text-success mt-1 text-nowrap"
                                             >
-
                                                 <i
                                                         class="bi bi-calendar-check me-1"
                                                 ></i>
@@ -2132,46 +1674,25 @@ require_once 'header.php';
                                                                 $order['date_paiement']
                                                         )
                                                 ); ?>
-
                                             </div>
-
                                         <?php endif; ?>
-
                                     </td>
 
-
-
-                                    <!--
-                                    ==============================================================
-                                    ACTIONS
-                                    ==============================================================
-                                    ВАЖНО:
-                                    d-none означает, что ячейка полностью скрыта,
-                                    пока нет выбранных строк.
-                                    -->
                                     <td
                                             class="text-center text-nowrap actions-column d-none"
                                     >
-
                                         <div class="order-actions">
 
-
-                                            <!-- Редактировать -->
                                             <a
                                                     href="edit_commande.php?id=<?= (int)$order['id']; ?>"
                                                     class="btn btn-sm btn-outline-primary me-1"
                                                     title="Редактировать"
                                             >
-
                                                 <i
                                                         class="bi bi-pencil"
                                                 ></i>
-
                                             </a>
 
-
-
-                                            <!-- Удалить -->
                                             <a
                                                     href="commandes_list.php?delete_id=<?= (int)$order['id']; ?>"
                                                     class="btn btn-sm btn-outline-danger"
@@ -2182,40 +1703,25 @@ require_once 'header.php';
                                                 "
                                                     title="Удалить"
                                             >
-
                                                 <i
                                                         class="bi bi-trash"
                                                 ></i>
-
                                             </a>
 
-
                                         </div>
-
                                     </td>
-
 
                                 </tr>
 
-
-
-                                <!--
-                                ==================================================================
-                                NOTES
-                                ==================================================================
-                                -->
                                 <?php if ($hasNotes): ?>
-
                                     <tr
                                             class="order-divider <?= $groupClass; ?>"
                                     >
-
                                         <td
                                                 colspan="12"
                                                 class="pt-0 pb-2 ps-4 small"
                                                 style="color: #2b2b2b;"
                                         >
-
 
                                             <?php
                                             if (
@@ -2224,30 +1730,22 @@ require_once 'header.php';
                                                     )
                                             ):
                                                 ?>
-
                                                 <span
                                                         class="note-comment me-2 d-inline-block px-2 py-1 rounded"
                                                 >
-
                                                     <i
                                                             class="bi bi-chat-left-text text-primary me-1"
                                                     ></i>
-
 
                                                     <strong class="text-dark">
                                                         Commentaire:
                                                     </strong>
 
-
                                                     <?= htmlspecialchars(
                                                             $order['commentaire']
                                                     ); ?>
-
                                                 </span>
-
                                             <?php endif; ?>
-
-
 
                                             <?php
                                             if (
@@ -2256,71 +1754,44 @@ require_once 'header.php';
                                                     )
                                             ):
                                                 ?>
-
                                                 <span
                                                         class="note-info d-inline-block px-2 py-1 rounded"
                                                 >
-
                                                     <i
                                                             class="bi bi-journal-text text-success me-1"
                                                     ></i>
-
 
                                                     <strong class="text-dark">
                                                         Notes:
                                                     </strong>
 
-
                                                     <?= htmlspecialchars(
                                                             $order['notes']
                                                     ); ?>
-
                                                 </span>
-
                                             <?php endif; ?>
 
-
                                         </td>
-
                                     </tr>
-
-
                                 <?php else: ?>
-
                                     <tr
                                             class="order-divider <?= $groupClass; ?>"
                                     >
-
                                         <td
                                                 colspan="12"
                                                 style="display: none;"
                                         ></td>
-
                                     </tr>
-
                                 <?php endif; ?>
-
 
                             <?php endforeach; ?>
 
-
                         <?php endif; ?>
-
                         </tbody>
 
-
-
-                        <!--
-                        |--------------------------------------------------------------------------
-                        | TOTAL
-                        |--------------------------------------------------------------------------
-                        -->
                         <?php if (!empty($commandes)): ?>
-
                             <tfoot class="table-header-custom">
-
                             <tr class="totals-row">
-
 
                                 <td
                                         colspan="7"
@@ -2329,112 +1800,70 @@ require_once 'header.php';
                                     Total:
                                 </td>
 
-
                                 <td
                                         class="text-end fs-6"
                                 >
-
                                     <span
                                             class="totals-badge"
                                     >
-
                                         <?= number_format(
                                                 $total_montant,
                                                 2,
                                                 ',',
                                                 ' '
                                         ); ?>
-
                                         €
-
                                     </span>
-
                                 </td>
-
 
                                 <td
                                         class="text-center"
                                 >
-
                                     <span
                                             class="totals-badge"
                                     >
-
                                         <?= number_format(
                                                 $total_impot,
                                                 2,
                                                 ',',
                                                 ' '
                                         ); ?>
-
                                         €
-
                                     </span>
-
                                 </td>
-
 
                                 <td
                                         class="text-center"
                                 >
-
                                     <span
                                             class="totals-badge"
                                     >
-
                                         <?= number_format(
                                                 $total_epargne,
                                                 2,
                                                 ',',
                                                 ' '
                                         ); ?>
-
                                         €
-
                                     </span>
-
                                 </td>
-
 
                                 <td colspan="2"></td>
 
-
                             </tr>
-
                             </tfoot>
-
                         <?php endif; ?>
 
-
                     </table>
-
                 </div>
-
             </div>
-
         </div>
 
-
     </form>
-
 </div>
 
-
-
-<!--
-|--------------------------------------------------------------------------
-| Bootstrap
-|--------------------------------------------------------------------------
--->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
-
-
-<!--
-|--------------------------------------------------------------------------
-| Кнопка прокрутки вверх
-|--------------------------------------------------------------------------
--->
 <button
         type="button"
         class="btn btn-primary btn-lg rounded-circle shadow"
@@ -2447,428 +1876,185 @@ require_once 'header.php';
         z-index: 9999;
     "
 >
-
     <i class="bi bi-arrow-up"></i>
-
 </button>
 
-
-
 <script>
-
-    /*
-    |--------------------------------------------------------------------------
-    | Автоматическое закрытие уведомлений
-    |--------------------------------------------------------------------------
-    */
     setTimeout(function () {
-
         const alerts =
             document.querySelectorAll('.alert');
 
-
         alerts.forEach(function (alertElement) {
-
             const alert =
                 new bootstrap.Alert(alertElement);
 
             alert.close();
-
         });
-
     }, 5000);
 
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | Получаем элементы
-    |--------------------------------------------------------------------------
-    */
     const selectAllCheckbox =
         document.getElementById('selectAll');
-
 
     const orderCheckboxes =
         document.querySelectorAll('.order-checkbox');
 
-
     const bulkDeleteBtn =
         document.getElementById('bulkDeleteBtn');
-
 
     const bulkCopyBtn =
         document.getElementById('bulkCopyBtn');
 
-
-    /*
-    |--------------------------------------------------------------------------
-    | Заголовок Actions
-    |--------------------------------------------------------------------------
-    */
     const actionsHeader =
         document.getElementById('actionsHeader');
 
-
-    /*
-    |--------------------------------------------------------------------------
-    | Все ячейки Actions
-    |--------------------------------------------------------------------------
-    */
     const actionsCells =
         document.querySelectorAll('.actions-column');
 
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | Главная функция управления выбранными строками
-    |--------------------------------------------------------------------------
-    */
     function updateActionButtonsVisibility() {
-
-        /*
-        |--------------------------------------------------------------------------
-        | Получаем выбранные checkbox
-        |--------------------------------------------------------------------------
-        */
         const checkedCheckboxes =
             document.querySelectorAll(
                 '.order-checkbox:checked'
             );
 
-
         const checkedCount =
             checkedCheckboxes.length;
 
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | DELETE
-        |--------------------------------------------------------------------------
-        | Показываем при выборе хотя бы одной строки.
-        |--------------------------------------------------------------------------
-        */
         if (checkedCount > 0) {
-
             bulkDeleteBtn.classList.remove(
                 'd-none'
             );
-
         } else {
-
             bulkDeleteBtn.classList.add(
                 'd-none'
             );
         }
 
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | COPY
-        |--------------------------------------------------------------------------
-        | Показываем только при выборе одной строки.
-        |--------------------------------------------------------------------------
-        */
         if (checkedCount === 1) {
-
             bulkCopyBtn.classList.remove(
                 'd-none'
             );
-
         } else {
-
             bulkCopyBtn.classList.add(
                 'd-none'
             );
         }
 
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | ACTIONS COLUMN
-        |--------------------------------------------------------------------------
-        |
-        | НИЧЕГО НЕ ВЫБРАНО:
-        |
-        | Actions полностью скрыта.
-        |
-        | ВЫБРАНА 1 ИЛИ НЕСКОЛЬКО СТРОК:
-        |
-        | Actions появляется.
-        |
-        |--------------------------------------------------------------------------
-        */
         if (checkedCount > 0) {
-
-            /*
-            |--------------------------------------------------------------------------
-            | Показываем заголовок Actions
-            |--------------------------------------------------------------------------
-            */
             if (actionsHeader) {
-
                 actionsHeader.classList.remove(
                     'd-none'
                 );
             }
 
-
-            /*
-            |--------------------------------------------------------------------------
-            | Показываем ячейки Actions
-            |--------------------------------------------------------------------------
-            */
             actionsCells.forEach(function (cell) {
-
                 cell.classList.remove(
                     'd-none'
                 );
-
             });
-
         } else {
-
-            /*
-            |--------------------------------------------------------------------------
-            | Скрываем заголовок Actions
-            |--------------------------------------------------------------------------
-            */
             if (actionsHeader) {
-
                 actionsHeader.classList.add(
                     'd-none'
                 );
             }
 
-
-            /*
-            |--------------------------------------------------------------------------
-            | Скрываем ячейки Actions
-            |--------------------------------------------------------------------------
-            */
             actionsCells.forEach(function (cell) {
-
                 cell.classList.add(
                     'd-none'
                 );
-
             });
-
         }
 
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | Показываем иконки только выбранным строкам
-        |--------------------------------------------------------------------------
-        */
         orderCheckboxes.forEach(function (checkbox) {
-
             const mainRow =
                 checkbox.closest('tr');
 
-
             if (checkbox.checked) {
-
-                /*
-                |--------------------------------------------------------------------------
-                | Строка выбрана
-                |--------------------------------------------------------------------------
-                */
                 mainRow.classList.add(
                     'row-selected'
                 );
-
             } else {
-
-                /*
-                |--------------------------------------------------------------------------
-                | Строка не выбрана
-                |--------------------------------------------------------------------------
-                */
                 mainRow.classList.remove(
                     'row-selected'
                 );
-
             }
-
         });
 
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | Синхронизация Select All
-        |--------------------------------------------------------------------------
-        |
-        | Если вручную выбраны ВСЕ строки,
-        | верхний checkbox тоже становится checked.
-        |--------------------------------------------------------------------------
-        */
         if (selectAllCheckbox) {
-
             if (
                 orderCheckboxes.length > 0 &&
                 checkedCount === orderCheckboxes.length
             ) {
-
                 selectAllCheckbox.checked =
                     true;
-
             } else {
-
                 selectAllCheckbox.checked =
                     false;
             }
         }
-
     }
 
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | Select All
-    |--------------------------------------------------------------------------
-    */
     if (selectAllCheckbox) {
-
         selectAllCheckbox.addEventListener(
             'change',
             function () {
-
                 const isChecked =
                     selectAllCheckbox.checked;
 
-
-                /*
-                |--------------------------------------------------------------------------
-                | Выбираем / снимаем все строки
-                |--------------------------------------------------------------------------
-                */
                 orderCheckboxes.forEach(
                     function (checkbox) {
-
                         checkbox.checked =
                             isChecked;
-
                     }
                 );
 
-
-                /*
-                |--------------------------------------------------------------------------
-                | Обновляем интерфейс
-                |--------------------------------------------------------------------------
-                */
                 updateActionButtonsVisibility();
-
             }
         );
     }
 
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | Индивидуальные checkbox
-    |--------------------------------------------------------------------------
-    */
     orderCheckboxes.forEach(
         function (checkbox) {
-
             checkbox.addEventListener(
                 'change',
                 function () {
-
-                    /*
-                    |--------------------------------------------------------------------------
-                    | Обновляем Actions
-                    |--------------------------------------------------------------------------
-                    */
                     updateActionButtonsVisibility();
-
                 }
             );
-
         }
     );
 
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | Первоначальное состояние
-    |--------------------------------------------------------------------------
-    |
-    | При загрузке страницы Actions скрыта.
-    | Но вызываем функцию на случай, если checkbox
-    | был восстановлен браузером.
-    |--------------------------------------------------------------------------
-    */
     updateActionButtonsVisibility();
 
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | Кнопка "Наверх"
-    |--------------------------------------------------------------------------
-    */
     const mybutton =
         document.getElementById(
             "btn-back-to-top"
         );
 
-
     window.onscroll =
         function () {
-
             if (
                 document.body.scrollTop > 300 ||
                 document.documentElement.scrollTop > 300
             ) {
-
                 mybutton.style.display =
                     "block";
-
             } else {
-
                 mybutton.style.display =
                     "none";
             }
-
         };
 
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | Прокрутка наверх
-    |--------------------------------------------------------------------------
-    */
     mybutton.addEventListener(
         "click",
         function () {
-
             window.scrollTo({
-
                 top: 0,
-
                 behavior: 'smooth'
-
             });
-
         }
     );
-
 </script>
-
 
 </body>
 </html>
