@@ -455,8 +455,14 @@ require_once 'header.php';
     .order-divider { border-bottom: 3px solid #94a3b8 !important; }
     .note-comment { background-color: #d9f2df; }
     .note-info { background-color: #fdf3cf; }
-    .order-group-even { background-color: #f8f9fb; }
-    .order-group-odd { background-color: #ffffff; }
+    .order-group-even { background-color: #f8f9fb !important; }
+    .order-group-odd { background-color: #ffffff !important; }
+    
+    /* Принудительная покраска всей строки для статусов */
+    tr.row-status-en-cours, tr.row-status-en-cours > td { background-color: #fef08a !important; }
+    tr.row-status-annulee, tr.row-status-annulee > td { background-color: #fecaca !important; }
+    tr.row-status-paye, tr.row-status-paye > td { background-color: #e2e8f0 !important; } /* Светло-серый для Payé */
+
     .table-header-custom th, .table-header-custom td { background-color: #82e89e !important; color: #020202 !important; }
     .table-header-custom th a { color: #020202 !important; }
     .totals-badge { background-color: #000000 !important; color: #ffffff !important; font-weight: bold !important; white-space: nowrap !important; padding: 2px 8px; border-radius: 4px; display: inline-block; }
@@ -466,7 +472,7 @@ require_once 'header.php';
     /* Скрываем колонку действий по умолчанию */
     .actions-column { display: none; }
     
-    tr.row-selected { background-color: #eef7ff !important; }
+    tr.row-selected, tr.row-selected > td { background-color: #eef7ff !important; }
     .order-actions .btn { min-width: 30px; padding: 1px 6px; }
     body { background-color: #d3d1d1 !important; }
 </style>
@@ -612,7 +618,6 @@ require_once 'header.php';
                             $rowIndex = 0;
                             foreach ($commandes as $order):
                                 $rowIndex++;
-                                $groupClass = ($rowIndex % 2 === 0) ? 'order-group-even' : 'order-group-odd';
                                 $montant = (float)($order['montant'] ?? 0);
                                 $impotVal = (float)($order['calcul_impot'] ?? 0);
                                 $impotAmount = ($impotVal == 1) ? ($montant * 0.212) : $impotVal;
@@ -631,6 +636,7 @@ require_once 'header.php';
                                 $statusBadge = 'bg-secondary';
                                 $statusLabel = $statusRaw;
                                 $isCancelled = false;
+                                $rowStatusClass = ($rowIndex % 2 === 0) ? 'order-group-even' : 'order-group-odd';
 
                                 switch (mb_strtolower($statusRaw)) {
                                     case 'prévu':
@@ -644,6 +650,7 @@ require_once 'header.php';
                                     case 'в работе':
                                         $statusBadge = 'bg-warning text-dark';
                                         $statusLabel = 'En cours';
+                                        $rowStatusClass = 'row-status-en-cours';
                                         break;
                                     case 'payé':
                                     case 'paye':
@@ -651,12 +658,14 @@ require_once 'header.php';
                                     case 'оплачен':
                                         $statusBadge = 'bg-secondary';
                                         $statusLabel = 'Payé';
+                                        $rowStatusClass = 'row-status-paye';
                                         break;
                                     case 'annulee':
                                     case 'annulée':
                                     case 'отменен':
                                         $isCancelled = true;
                                         $statusLabel = 'Annulée';
+                                        $rowStatusClass = 'row-status-annulee';
                                         break;
                                 }
 
@@ -668,7 +677,7 @@ require_once 'header.php';
 
                                 $hasNotes = !empty($order['notes']) || !empty($order['commentaire']);
                                 ?>
-                                <tr id="order-<?= (int)$order['id']; ?>" class="<?= $groupClass; ?>">
+                                <tr id="order-<?= (int)$order['id']; ?>" class="<?= $rowStatusClass; ?>">
                                     <td class="text-center">
                                         <input type="checkbox" name="delete_ids[]" value="<?= (int)$order['id']; ?>" class="form-check-input order-checkbox" aria-label="Sélectionner la commande">
                                     </td>
@@ -768,7 +777,7 @@ require_once 'header.php';
                                     </td>
                                 </tr>
 
-                                <tr class="order-divider <?= $groupClass; ?>">
+                                <tr class="order-divider <?= $rowStatusClass; ?>">
                                     <td colspan="12" class="pt-0 pb-2 ps-4 small" style="color: #2b2b2b; <?= !$hasNotes ? 'display: none;' : ''; ?>">
                                         <?php if (!empty($order['commentaire'])): ?>
                                             <span class="note-comment me-2 d-inline-block px-2 py-1 rounded">
