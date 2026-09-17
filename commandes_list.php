@@ -27,16 +27,16 @@ if (isset($_GET['delete_id'])) {
         ");
 
         $stmt->execute([
-                ':id' => $delete_id
+            ':id' => $delete_id
         ]);
 
         $queryString = http_build_query(
-                array_diff_key($_GET, ['delete_id' => ''])
+            array_diff_key($_GET, ['delete_id' => ''])
         );
 
         header(
-                "Location: commandes_list.php?deleted=1" .
-                ($queryString ? '&' . $queryString : '')
+            "Location: commandes_list.php?deleted=1" .
+            ($queryString ? '&' . $queryString : '')
         );
 
         exit;
@@ -53,9 +53,9 @@ if (isset($_GET['delete_id'])) {
 |--------------------------------------------------------------------------
 */
 if (
-        $_SERVER['REQUEST_METHOD'] === 'POST' &&
-        isset($_POST['bulk_delete']) &&
-        !empty($_POST['delete_ids'])
+    $_SERVER['REQUEST_METHOD'] === 'POST' &&
+    isset($_POST['bulk_delete']) &&
+    !empty($_POST['delete_ids'])
 ) {
     $ids = array_map('intval', $_POST['delete_ids']);
     $ids = array_values(array_filter($ids));
@@ -63,8 +63,8 @@ if (
     if (count($ids) > 0) {
         try {
             $placeholders = implode(
-                    ',',
-                    array_fill(0, count($ids), '?')
+                ',',
+                array_fill(0, count($ids), '?')
             );
 
             $stmt = $pdo->prepare("
@@ -90,9 +90,9 @@ if (
 |--------------------------------------------------------------------------
 */
 if (
-        $_SERVER['REQUEST_METHOD'] === 'POST' &&
-        isset($_POST['bulk_copy']) &&
-        !empty($_POST['delete_ids'])
+    $_SERVER['REQUEST_METHOD'] === 'POST' &&
+    isset($_POST['bulk_copy']) &&
+    !empty($_POST['delete_ids'])
 ) {
     $ids = array_map('intval', $_POST['delete_ids']);
     $ids = array_values(array_filter($ids));
@@ -109,7 +109,7 @@ if (
             ");
 
             $stmtSrc->execute([
-                    ':id' => $sourceId
+                ':id' => $sourceId
             ]);
 
             $srcOrder = $stmtSrc->fetch(PDO::FETCH_ASSOC);
@@ -178,22 +178,22 @@ if (
                 $insertStmt = $pdo->prepare($insertSql);
 
                 $insertStmt->execute([
-                        ':id_commande'        => $next_order_id,
-                        ':date_commande'      => $srcOrder['date_commande'],
-                        ':rdv_time'           => $srcOrder['rdv_time'] ?? null,
-                        ':client_id'          => $srcOrder['client_id'],
-                        ':platform_id'        => $srcOrder['platform_id'],
-                        ':payment_method_id'  => $srcOrder['payment_method_id'],
-                        ':facture_id'         => $srcOrder['facture_id'],
-                        ':montant'            => $srcOrder['montant'],
-                        ':statut'             => 'Prévu',
-                        ':date_paiement'      => null,
-                        ':notes'              => $srcOrder['notes'],
-                        ':commentaire'        => $srcOrder['commentaire'],
-                        ':calcul_impot'       => $srcOrder['calcul_impot'],
-                        ':calcul_epargne'     => $srcOrder['calcul_epargne'],
-                        ':impot_paye'         => 0,
-                        ':epargne_paye'       => 0
+                    ':id_commande'         => $next_order_id,
+                    ':date_commande'      => $srcOrder['date_commande'],
+                    ':rdv_time'           => $srcOrder['rdv_time'] ?? null,
+                    ':client_id'          => $srcOrder['client_id'],
+                    ':platform_id'        => $srcOrder['platform_id'],
+                    ':payment_method_id'  => $srcOrder['payment_method_id'],
+                    ':facture_id'         => $srcOrder['facture_id'],
+                    ':montant'            => $srcOrder['montant'],
+                    ':statut'             => 'Prévu',
+                    ':date_paiement'      => null,
+                    ':notes'              => $srcOrder['notes'],
+                    ':commentaire'        => $srcOrder['commentaire'],
+                    ':calcul_impot'       => $srcOrder['calcul_impot'],
+                    ':calcul_epargne'     => $srcOrder['calcul_epargne'],
+                    ':impot_paye'         => 0,
+                    ':epargne_paye'       => 0
                 ]);
 
                 header("Location: commandes_list.php?copied=1");
@@ -214,14 +214,14 @@ if (
 */
 if (isset($_GET['clear_filter'])) {
     unset(
-            $_SESSION['cmd_search'],
-            $_SESSION['cmd_status'],
-            $_SESSION['cmd_date_start'],
-            $_SESSION['cmd_date_end'],
-            $_SESSION['cmd_month'],
-            $_SESSION['cmd_year'],
-            $_SESSION['cmd_sort_col'],
-            $_SESSION['cmd_sort_dir']
+        $_SESSION['cmd_search'],
+        $_SESSION['cmd_status'],
+        $_SESSION['cmd_date_start'],
+        $_SESSION['cmd_date_end'],
+        $_SESSION['cmd_month'],
+        $_SESSION['cmd_year'],
+        $_SESSION['cmd_sort_col'],
+        $_SESSION['cmd_sort_dir']
     );
 
     header("Location: commandes_list.php");
@@ -235,10 +235,10 @@ if (isset($_GET['clear_filter'])) {
 |--------------------------------------------------------------------------
 */
 if (
-        isset($_GET['search']) ||
-        isset($_GET['status']) ||
-        isset($_GET['month']) ||
-        isset($_GET['year'])
+    isset($_GET['search']) ||
+    isset($_GET['status']) ||
+    isset($_GET['month']) ||
+    isset($_GET['year'])
 ) {
     $_SESSION['cmd_search'] = trim($_GET['search'] ?? '');
     $_SESSION['cmd_status'] = trim($_GET['status'] ?? '');
@@ -462,11 +462,12 @@ require_once 'header.php';
     .totals-badge { background-color: #000000 !important; color: #ffffff !important; font-weight: bold !important; white-space: nowrap !important; padding: 2px 8px; border-radius: 4px; display: inline-block; }
     .rdv-time-badge { background-color: #e2e8f0; color: #1e293b; padding: 2px 6px; border-radius: 4px; font-weight: 600; display: inline-block; }
     #bulkActionButtons { position: sticky; top: 10px; z-index: 1050; }
-    .actions-column { vertical-align: middle; }
-    .order-actions { opacity: 0; visibility: hidden; transition: opacity 0.2s ease-in-out, visibility 0.2s ease-in-out; }
-    tr.row-selected .order-actions { opacity: 1; visibility: visible; }
+    
+    /* Скрываем колонку действий по умолчанию */
+    .actions-column { display: none; }
+    
     tr.row-selected { background-color: #eef7ff !important; }
-    .order-actions .btn { min-width: 34px; }
+    .order-actions .btn { min-width: 30px; padding: 1px 6px; }
     body { background-color: #d3d1d1 !important; }
 </style>
 
@@ -584,9 +585,11 @@ require_once 'header.php';
                     <table class="table table-hover align-middle mb-0" style="min-width: 1200px;">
                         <thead class="table-header-custom">
                         <tr>
-                            <th style="width: 40px;" class="text-center">
+                            <th style="width: 50px;" class="text-center">
                                 <input type="checkbox" class="form-check-input" id="selectAll" aria-label="Tout sélectionner">
                             </th>
+                            <!-- Колонка Actions, которая появляется только при выборе -->
+                            <th style="width: 90px;" class="text-center actions-column" id="actionsHeader">Actions</th>
                             <?php renderTh('id_commande', '№ de сommande', 'text-nowrap'); ?>
                             <?php renderTh('date_commande', 'Date', 'text-nowrap'); ?>
                             <?php renderTh('client_name', 'Client', 'text-nowrap'); ?>
@@ -597,7 +600,6 @@ require_once 'header.php';
                             <th style="width: 150px;" class="text-center">Taxe</th>
                             <th style="width: 150px;" class="text-center">Cumul</th>
                             <?php renderTh('statut', 'Statut', 'text-center text-nowrap'); ?>
-                            <th id="actionsHeader" style="width: 100px;" class="text-center actions-column d-none">Actions</th>
                         </tr>
                         </thead>
                         <tbody>
@@ -669,6 +671,15 @@ require_once 'header.php';
                                 <tr id="order-<?= (int)$order['id']; ?>" class="<?= $groupClass; ?>">
                                     <td class="text-center">
                                         <input type="checkbox" name="delete_ids[]" value="<?= (int)$order['id']; ?>" class="form-check-input order-checkbox" aria-label="Sélectionner la commande">
+                                    </td>
+                                    <!-- Ячейка с иконками редактирования/удаления, которая появляется рядом с чекбоксом -->
+                                    <td class="text-center text-nowrap actions-column">
+                                        <a href="edit_commande.php?id=<?= (int)$order['id']; ?>" class="btn btn-sm btn-outline-primary me-1" title="Редактировать">
+                                            <i class="bi bi-pencil"></i>
+                                        </a>
+                                        <a href="commandes_list.php?delete_id=<?= (int)$order['id']; ?>" class="btn btn-sm btn-outline-danger" onclick="return confirm('Êtes-vous sûr de vouloir supprimer cette commande?');" title="Удалить">
+                                            <i class="bi bi-trash"></i>
+                                        </a>
                                     </td>
                                     <td class="fw-bold text-nowrap"><?= htmlspecialchars($order['id_commande']); ?></td>
                                     <td class="text-nowrap">
@@ -754,16 +765,6 @@ require_once 'header.php';
                                                 <i class="bi bi-calendar-check me-1"></i><?= date('d.m.Y', strtotime($order['date_paiement'])); ?>
                                             </div>
                                         <?php endif; ?>
-                                    </td>
-                                    <td class="text-center text-nowrap actions-column d-none">
-                                        <div class="order-actions">
-                                            <a href="edit_commande.php?id=<?= (int)$order['id']; ?>" class="btn btn-sm btn-outline-primary me-1" title="Редактировать">
-                                                <i class="bi bi-pencil"></i>
-                                            </a>
-                                            <a href="commandes_list.php?delete_id=<?= (int)$order['id']; ?>" class="btn btn-sm btn-outline-danger" onclick="return confirm('Êtes-vous sûr de vouloir supprimer cette commande?');" title="Удалить">
-                                                <i class="bi bi-trash"></i>
-                                            </a>
-                                        </div>
                                     </td>
                                 </tr>
 
@@ -851,12 +852,13 @@ require_once 'header.php';
             bulkCopyBtn.classList.add('d-none');
         }
 
+        // Показываем или скрываем столбец "Actions" в шапке и строках
         if (checkedCount > 0) {
-            if (actionsHeader) actionsHeader.classList.remove('d-none');
-            actionsCells.forEach(cell => cell.classList.remove('d-none'));
+            if (actionsHeader) actionsHeader.style.display = 'table-cell';
+            actionsCells.forEach(cell => cell.style.display = 'table-cell');
         } else {
-            if (actionsHeader) actionsHeader.classList.add('d-none');
-            actionsCells.forEach(cell => cell.classList.add('d-none'));
+            if (actionsHeader) actionsHeader.style.display = 'none';
+            actionsCells.forEach(cell => cell.style.display = 'none');
         }
 
         orderCheckboxes.forEach(function (checkbox) {
