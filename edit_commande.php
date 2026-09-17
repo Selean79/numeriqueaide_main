@@ -26,7 +26,7 @@ $error = '';
 
 // Значения формы
 $form = [
-        'id_commande'        => $order['id_commande'] ?? '',
+        'id_commande'         => $order['id_commande'] ?? '',
         'client_id'          => $order['client_id'] ?? '',
         'platform_id'        => $order['platform_id'] ?? '',
         'payment_method_id'  => $order['payment_method_id'] ?? '',
@@ -154,7 +154,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 ':id'                 => $order['id']
         ]);
 
-        header("Location: " . $return_page);
+        // Возврат на страницу списка с якорем на конкретный заказ
+        $separator = (strpos($return_page, '?') !== false) ? '&' : '?';
+        header("Location: " . $return_page . $separator . "updated=" . $order['id'] . "#order-" . $order['id']);
         exit;
 
     } catch (PDOException $e) {

@@ -674,7 +674,7 @@ require_once 'header.php';
                                     </td>
                                     <!-- Ячейка с иконками редактирования/удаления, которая появляется рядом с чекбоксом -->
                                     <td class="text-center text-nowrap actions-column">
-                                        <a href="edit_commande.php?id=<?= (int)$order['id']; ?>" class="btn btn-sm btn-outline-primary me-1" title="Редактировать">
+                                        <a href="edit_commande.php?id=<?= (int)$order['id']; ?>&return=<?= urlencode(basename($_SERVER['PHP_SELF']) . '?' . $_SERVER['QUERY_STRING']); ?>" class="btn btn-sm btn-outline-primary me-1" title="Редактировать">
                                             <i class="bi bi-pencil"></i>
                                         </a>
                                         <a href="commandes_list.php?delete_id=<?= (int)$order['id']; ?>" class="btn btn-sm btn-outline-danger" onclick="return confirm('Êtes-vous sûr de vouloir supprimer cette commande?');" title="Удалить">
@@ -821,6 +821,20 @@ require_once 'header.php';
 </button>
 
 <script>
+    // Автоматическая прокрутка к отредактированному заказу по якорю в URL
+    document.addEventListener("DOMContentLoaded", function () {
+        if (window.location.hash) {
+            const targetElement = document.querySelector(window.location.hash);
+            if (targetElement) {
+                targetElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                targetElement.classList.add('table-active');
+                setTimeout(() => {
+                    targetElement.classList.remove('table-active');
+                }, 2000);
+            }
+        }
+    });
+
     setTimeout(function () {
         const alerts = document.querySelectorAll('.alert');
         alerts.forEach(function (alertElement) {
