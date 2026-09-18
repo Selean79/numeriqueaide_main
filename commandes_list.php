@@ -461,13 +461,28 @@ require_once 'header.php';
     /* Принудительная покраска всей строки для статусов */
     tr.row-status-en-cours, tr.row-status-en-cours > td { background-color: #fef08a !important; }
     tr.row-status-annulee, tr.row-status-annulee > td { background-color: #fecaca !important; }
-    tr.row-status-paye, tr.row-status-paye > td { background-color: #e2e8f0 !important; } /* Светло-серый для Payé */
+    tr.row-status-paye, tr.row-status-paye > td { background-color: #94a3b8 !important; }
 
-    .table-header-custom th, .table-header-custom td { background-color: #82e89e !important; color: #020202 !important; }
+    /* Обычная зеленая шапка таблицы (без липкости, чтобы не перекрывать строки) */
+    .table-header-custom th, .table-header-custom td { 
+        background-color: #82e89e !important; 
+        color: #020202 !important; 
+    }
     .table-header-custom th a { color: #020202 !important; }
+
     .totals-badge { background-color: #000000 !important; color: #ffffff !important; font-weight: bold !important; white-space: nowrap !important; padding: 2px 8px; border-radius: 4px; display: inline-block; }
     .rdv-time-badge { background-color: #e2e8f0; color: #1e293b; padding: 2px 6px; border-radius: 4px; font-weight: 600; display: inline-block; }
-    #bulkActionButtons { position: sticky; top: 10px; z-index: 1050; }
+    
+    /* Кнопки Copy / Supprimer аккуратно прилипают под верхним меню сайта */
+    /* Кнопки прилипают под меню без сплошного фона */
+    #bulkActionButtons { 
+        position: sticky; 
+        top: 55px; 
+        z-index: 1050; 
+        background-color: transparent; /* Убрали серый фон */
+        padding: 8px 0;
+        margin-bottom: 10px;
+    }
     
     /* Скрываем колонку действий по умолчанию */
     .actions-column { display: none; }
@@ -594,7 +609,6 @@ require_once 'header.php';
                             <th style="width: 50px;" class="text-center">
                                 <input type="checkbox" class="form-check-input" id="selectAll" aria-label="Tout sélectionner">
                             </th>
-                            <!-- Колонка Actions, которая появляется только при выборе -->
                             <th style="width: 90px;" class="text-center actions-column" id="actionsHeader">Actions</th>
                             <?php renderTh('id_commande', '№ de сommande', 'text-nowrap'); ?>
                             <?php renderTh('date_commande', 'Date', 'text-nowrap'); ?>
@@ -681,7 +695,6 @@ require_once 'header.php';
                                     <td class="text-center">
                                         <input type="checkbox" name="delete_ids[]" value="<?= (int)$order['id']; ?>" class="form-check-input order-checkbox" aria-label="Sélectionner la commande">
                                     </td>
-                                    <!-- Ячейка с иконками редактирования/удаления, которая появляется рядом с чекбоксом -->
                                     <td class="text-center text-nowrap actions-column">
                                         <a href="edit_commande.php?id=<?= (int)$order['id']; ?>&return=<?= urlencode(basename($_SERVER['PHP_SELF']) . '?' . $_SERVER['QUERY_STRING']); ?>" class="btn btn-sm btn-outline-primary me-1" title="Редактировать">
                                             <i class="bi bi-pencil"></i>
@@ -825,12 +838,16 @@ require_once 'header.php';
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
-<button type="button" class="btn btn-primary btn-lg rounded-circle shadow" id="btn-back-to-top" style="position: fixed; bottom: 20px; right: 20px; display: none; z-index: 9999;">
+<!-- Зеленые кнопки прокрутки вниз и наверх -->
+<button type="button" class="btn btn-success btn-lg rounded-circle shadow" id="btn-back-to-bottom" style="position: fixed; bottom: 80px; right: 20px; display: none; z-index: 9999;" title="Прокрутить вниз">
+    <i class="bi bi-arrow-down"></i>
+</button>
+
+<button type="button" class="btn btn-success btn-lg rounded-circle shadow" id="btn-back-to-top" style="position: fixed; bottom: 20px; right: 20px; display: none; z-index: 9999;" title="Прокрутить наверх">
     <i class="bi bi-arrow-up"></i>
 </button>
 
 <script>
-    // Автоматическая прокрутка к отредактированному заказу по якорю в URL
     document.addEventListener("DOMContentLoaded", function () {
         if (window.location.hash) {
             const targetElement = document.querySelector(window.location.hash);
@@ -875,7 +892,6 @@ require_once 'header.php';
             bulkCopyBtn.classList.add('d-none');
         }
 
-        // Показываем или скрываем столбец "Actions" в шапке и строках
         if (checkedCount > 0) {
             if (actionsHeader) actionsHeader.style.display = 'table-cell';
             actionsCells.forEach(cell => cell.style.display = 'table-cell');
@@ -912,17 +928,33 @@ require_once 'header.php';
 
     updateActionButtonsVisibility();
 
-    const mybutton = document.getElementById("btn-back-to-top");
+    const topButton = document.getElementById("btn-back-to-top");
+    const bottomButton = document.getElementById("btn-back-to-bottom");
+
     window.onscroll = function () {
-        if (document.body.scrollTop > 300 || document.documentElement.scrollTop > 300) {
-            mybutton.style.display = "block";
+        const scrollTop = document.body.scrollTop || document.documentElement.scrollTop;
+        const scrollHeight = document.documentElement.scrollHeight;
+        const clientHeight = document.documentElement.clientHeight;
+
+        if (scrollTop > 300) {
+            topButton.style.display = "block";
         } else {
-            mybutton.style.display = "none";
+            topButton.style.display = "none";
+        }
+
+        if (scrollTop + clientHeight < scrollHeight - 300) {
+            bottomButton.style.display = "block";
+        } else {
+            bottomButton.style.display = "none";
         }
     };
 
-    mybutton.addEventListener("click", function () {
+    topButton.addEventListener("click", function () {
         window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+
+    bottomButton.addEventListener("click", function () {
+        window.scrollTo({ top: document.documentElement.scrollHeight, behavior: 'smooth' });
     });
 </script>
 </body>
