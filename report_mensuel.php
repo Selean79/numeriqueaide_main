@@ -90,6 +90,14 @@ $stmtPurchases =$pdo->prepare("
 $stmtPurchases->execute([':start_date' => $start_date, ':end_date' =>$end_date]);
 $total_purchases = (float)($stmtPurchases->fetchColumn() ?? 0);
 
+// 5.1. Salaires (Общая сумма зарплат за выбранный месяц)
+$stmtSalaires =$pdo->prepare("
+    SELECT SUM(montant) FROM salaires 
+    WHERE date_versement BETWEEN :start_date AND :end_date
+");
+$stmtSalaires->execute([':start_date' => $start_date, ':end_date' =>$end_date]);
+$total_salaires = (float)($stmtSalaires->fetchColumn() ?? 0);
+
 // 6. Разбивка по способам оплаты (Только оплаченные заказы)
 $pmCols =$pdo->query("SHOW COLUMNS FROM modes_de_paiement")->fetchAll(PDO::FETCH_COLUMN);
 $pmColName = in_array('nom',$pmCols) ? 'nom' : (in_array('name', $pmCols) ? 'name' :$pmCols[1]);
@@ -110,8 +118,8 @@ $stmtByMethod =$pdo->prepare("
 $stmtByMethod->execute([':start_date' => $start_date, ':end_date' =>$end_date]);
 $payments_by_method =$stmtByMethod->fetchAll();
 
-// 7. Итоговый чистый доход (Total des paiements минус Impôt минус Coûts des matériaux)
-$net_total =$total_paiements - $total_impot -$total_purchases;
+// 7. Итоговый чистый доход (Платежи минус Налоги минус Закупки материалов минус Зарплаты)
+$net_total = $total_paiements -$total_impot - $total_purchases -$total_salaires;
 
 $french_months = [
         1 => 'Janvier', 2 => 'Février', 3 => 'Mars', 4 => 'Avril',
@@ -184,7 +192,7 @@ require_once 'header.php';
         </div>
     </div>
 
-    <!-- Отдельный модуль: Сумма оплаченных заказов с активным налогом -->
+    <!-- Модуль: Сумма оплаченных заказов с активным налогом -->
     <div class="card shadow-sm border-0 mb-3">
         <div class="card-body p-4 d-flex align-items-center">
             <div class="rounded-circle bg-primary bg-opacity-10 p-3 text-primary me-3">
@@ -228,15 +236,33 @@ require_once 'header.php';
         </div>
     </div>
 
-    <!-- Закупки -->
-    <div class="card shadow-sm border-0 mb-3">
-        <div class="card-body p-4 d-flex align-items-center">
-            <div class="rounded-circle bg-warning bg-opacity-10 p-3 text-warning me-3">
-                <i class="bi bi-cart3 fs-4"></i>
+    <!-- Закупки и Зарплаты -->
+    <div class="row g-3 mb-3">
+        <div class="col-md-6">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-body p-4 d-flex align-items-center">
+                    <div class="rounded-circle bg-warning bg-opacity-10 p-3 text-warning me-3">
+                        <i class="bi bi-cart3 fs-4"></i>
+                    </div>
+                    <div>
+                        <div class="text-muted small fw-semibold">Coûts des matériaux</div>
+                        <div class="fs-3 fw-bold text-dark"><?= number_format($total_purchases, 2, ',', ' '); ?> €</div>
+                    </div>
+                </div>
             </div>
-            <div>
-                <div class="text-muted small fw-semibold">Coûts des matériaux</div>
-                <div class="fs-3 fw-bold text-dark"><?= number_format($total_purchases, 2, ',', ' '); ?> €</div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-body p-4 d-flex align-items-center">
+                    <div class="rounded-circle bg-success bg-opacity-10 p-3 text-success me-3">
+                        <i class="bi bi-wallet2 fs-4"></i>
+                    </div>
+                    <div>
+                        <div class="text-muted small fw-semibold">Total des salaires</div>
+                        <div class="fs-3 fw-bold text-dark"><?= number_format($total_salaires, 2, ',', ' '); ?> €</div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -282,7 +308,7 @@ require_once 'header.php';
                 <i class="bi bi-currency-euro fs-3"></i>
             </div>
             <div>
-                <div class="text-muted small fw-semibold">Total (ensemble des paiements, hors taxes et coûts des matériaux)</div>
+                <div class="text-muted small fw-semibold">Total (ensemble des paiements, hors taxes, coûts des matériaux et salaires)</div>
                 <div class="fs-2 fw-bold text-success"><?= number_format($net_total, 2, ',', ' '); ?> €</div>
             </div>
         </div>
