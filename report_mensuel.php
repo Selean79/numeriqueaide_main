@@ -6,24 +6,23 @@ error_reporting(E_ALL);
 require_once 'db.php';
 
 // Получение месяца и года
-$selected_month = isset($_GET['month']) ? (int)$_GET['month'] : (int)date('m');
-$selected_year  = isset($_GET['year'])  ? (int)$_GET['year']  : (int)date('Y');
+$selected_month = isset($_GET['month']) ? (int)$_GET['month'] : (int)date('m');$selected_year  = isset($_GET['year'])  ? (int)$_GET['year']  : (int)date('Y');
 
 // Границы месяца
-$start_date = sprintf('%04d-%02d-01', $selected_year, $selected_month);
+$start_date = sprintf('%04d-%02d-01', $selected_year,$selected_month);
 $end_date   = date('Y-m-t', strtotime($start_date));
 
 // 1. Total des commandes (Все созданные за месяц заказы, исключая отмененные)
-$stmtCommandes = $pdo->prepare("
+$stmtCommandes =$pdo->prepare("
     SELECT SUM(montant) FROM commandes 
     WHERE date_commande BETWEEN :start_date AND :end_date
     AND (LOWER(TRIM(statut)) NOT IN ('annulee', 'annulée', 'отменен'))
 ");
-$stmtCommandes->execute([':start_date' => $start_date, ':end_date' => $end_date]);
+$stmtCommandes->execute([':start_date' => $start_date, ':end_date' =>$end_date]);
 $total_commandes = (float)($stmtCommandes->fetchColumn() ?? 0);
 
 // 2. Total des paiements (Только ОПЛАЧЕННЫЕ заказы за месяц)
-$stmtPaiements = $pdo->prepare("
+$stmtPaiements =$pdo->prepare("
     SELECT SUM(montant) FROM commandes 
     WHERE (
         (date_paiement BETWEEN :start_date AND :end_date) 
@@ -31,11 +30,11 @@ $stmtPaiements = $pdo->prepare("
     )
     AND (LOWER(TRIM(statut)) IN ('payé', 'paye', 'terminee', 'завершен', 'оплачен'))
 ");
-$stmtPaiements->execute([':start_date' => $start_date, ':end_date' => $end_date]);
+$stmtPaiements->execute([':start_date' => $start_date, ':end_date' =>$end_date]);
 $total_paiements = (float)($stmtPaiements->fetchColumn() ?? 0);
 
 // 3. Impôt 21,2% (Только по ОПЛАЧЕННЫМ заказам с флагом calcul_impot > 0)
-$stmtImpot = $pdo->prepare("
+$stmtImpot =$pdo->prepare("
     SELECT SUM(
         CASE 
             WHEN calcul_impot = 1 THEN montant * 0.212 
@@ -49,11 +48,24 @@ $stmtImpot = $pdo->prepare("
     AND (LOWER(TRIM(statut)) IN ('payé', 'paye', 'terminee', 'завершен', 'оплачен'))
     AND calcul_impot > 0
 ");
-$stmtImpot->execute([':start_date' => $start_date, ':end_date' => $end_date]);
+$stmtImpot->execute([':start_date' => $start_date, ':end_date' =>$end_date]);
 $total_impot = (float)($stmtImpot->fetchColumn() ?? 0);
 
+// 3.1. Сумма СУММЫ ЗАКАЗОВ (montant), которые оплачены и имеют активный расчет налога (calcul_impot > 0)
+$stmtCommandesTax =$pdo->prepare("
+    SELECT SUM(montant) FROM commandes 
+    WHERE (
+        (date_paiement BETWEEN :start_date AND :end_date) 
+        OR (date_paiement IS NULL AND date_commande BETWEEN :start_date AND :end_date)
+    )
+    AND (LOWER(TRIM(statut)) IN ('payé', 'paye', 'terminee', 'завершен', 'оплачен'))
+    AND calcul_impot > 0
+");
+$stmtCommandesTax->execute([':start_date' => $start_date, ':end_date' =>$end_date]);
+$total_commandes_tax = (float)($stmtCommandesTax->fetchColumn() ?? 0);
+
 // 4. Épargne 10% (Только по ОПЛАЧЕННЫМ заказам с флагом calcul_epargne > 0)
-$stmtEpargne = $pdo->prepare("
+$stmtEpargne =$pdo->prepare("
     SELECT SUM(
         CASE 
             WHEN calcul_epargne = 1 THEN montant * 0.10 
@@ -67,22 +79,22 @@ $stmtEpargne = $pdo->prepare("
     AND (LOWER(TRIM(statut)) IN ('payé', 'paye', 'terminee', 'завершен', 'оплачен'))
     AND calcul_epargne > 0
 ");
-$stmtEpargne->execute([':start_date' => $start_date, ':end_date' => $end_date]);
+$stmtEpargne->execute([':start_date' => $start_date, ':end_date' =>$end_date]);
 $total_epargne = (float)($stmtEpargne->fetchColumn() ?? 0);
 
 // 5. Coûts des matériaux (Закупки материалов за месяц)
-$stmtPurchases = $pdo->prepare("
+$stmtPurchases =$pdo->prepare("
     SELECT SUM(montant) FROM purchases 
     WHERE date_achat BETWEEN :start_date AND :end_date
 ");
-$stmtPurchases->execute([':start_date' => $start_date, ':end_date' => $end_date]);
+$stmtPurchases->execute([':start_date' => $start_date, ':end_date' =>$end_date]);
 $total_purchases = (float)($stmtPurchases->fetchColumn() ?? 0);
 
 // 6. Разбивка по способам оплаты (Только оплаченные заказы)
-$pmCols = $pdo->query("SHOW COLUMNS FROM modes_de_paiement")->fetchAll(PDO::FETCH_COLUMN);
-$pmColName = in_array('nom', $pmCols) ? 'nom' : (in_array('name', $pmCols) ? 'name' : $pmCols[1]);
+$pmCols =$pdo->query("SHOW COLUMNS FROM modes_de_paiement")->fetchAll(PDO::FETCH_COLUMN);
+$pmColName = in_array('nom',$pmCols) ? 'nom' : (in_array('name', $pmCols) ? 'name' :$pmCols[1]);
 
-$stmtByMethod = $pdo->prepare("
+$stmtByMethod =$pdo->prepare("
     SELECT 
         COALESCE(pm.`$pmColName`, 'Espèces') AS method_name,
         SUM(c.montant) AS amount
@@ -95,11 +107,11 @@ $stmtByMethod = $pdo->prepare("
     AND (LOWER(TRIM(c.statut)) IN ('payé', 'paye', 'terminee', 'завершен', 'оплачен'))
     GROUP BY pm.id, method_name
 ");
-$stmtByMethod->execute([':start_date' => $start_date, ':end_date' => $end_date]);
-$payments_by_method = $stmtByMethod->fetchAll();
+$stmtByMethod->execute([':start_date' => $start_date, ':end_date' =>$end_date]);
+$payments_by_method =$stmtByMethod->fetchAll();
 
 // 7. Итоговый чистый доход (Total des paiements минус Impôt минус Coûts des matériaux)
-$net_total = $total_paiements - $total_impot - $total_purchases;
+$net_total =$total_paiements - $total_impot -$total_purchases;
 
 $french_months = [
         1 => 'Janvier', 2 => 'Février', 3 => 'Mars', 4 => 'Avril',
@@ -115,7 +127,7 @@ require_once 'header.php';
 <div class="container mt-4 mb-5" style="max-width: 900px;">
     <!-- Кнопка возврата к отчетам -->
     <div class="mb-3">
-        <a href="reports.php" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i> К отчетам</a>
+        <a href="reports.php" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i> Retour aux rapports</a>
     </div>
 
     <!-- Заголовок и селектор -->
@@ -125,8 +137,8 @@ require_once 'header.php';
         <form method="GET" id="reportForm" class="d-flex flex-column align-items-center gap-3">
             <div class="d-flex gap-2">
                 <select name="month" class="form-select fw-bold shadow-sm" style="width: 140px;" onchange="this.form.submit()">
-                    <?php foreach ($french_months as $m_num => $m_name): ?>
-                        <option value="<?= $m_num; ?>" <?= $selected_month === $m_num ? 'selected' : ''; ?>>
+                    <?php foreach ($french_months as $m_num =>$m_name): ?>
+                        <option value="<?= $m_num; ?>" <?= $selected_month ===$m_num ? 'selected' : ''; ?>>
                             <?= $m_name; ?>
                         </option>
                     <?php endforeach; ?>
@@ -168,6 +180,19 @@ require_once 'header.php';
                         <div class="fs-2 fw-bold text-primary"><?= number_format($total_paiements, 2, ',', ' '); ?> €</div>
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Отдельный модуль: Сумма оплаченных заказов с активным налогом -->
+    <div class="card shadow-sm border-0 mb-3">
+        <div class="card-body p-4 d-flex align-items-center">
+            <div class="rounded-circle bg-primary bg-opacity-10 p-3 text-primary me-3">
+                <i class="bi bi-receipt fs-3"></i>
+            </div>
+            <div>
+                <div class="text-muted small fw-semibold">Montant des commandes payées (avec taxe active)</div>
+                <div class="fs-2 fw-bold text-dark"><?= number_format($total_commandes_tax, 2, ',', ' '); ?> €</div>
             </div>
         </div>
     </div>
@@ -224,14 +249,11 @@ require_once 'header.php';
                 <?php if (empty($payments_by_method)): ?>
                     <div class="col-12 text-muted small">Paiements non trouvés pour ce mois.</div>
                 <?php else: ?>
-                    <?php foreach ($payments_by_method as $pm): ?>
+                    <?php foreach ($payments_by_method as$pm): ?>
                         <?php
-                        $m_name = trim($pm['method_name']);
-                        $icon = 'bi-credit-card';
-                        if (strcasecmp($m_name, 'Banque Postal') === 0 || strcasecmp($m_name, 'Virement') === 0) {
-                            $icon = 'bi-bank';
-                        } elseif (strcasecmp($m_name, 'PayPal') === 0) {
-                            $icon = 'bi-currency-dollar';
+                        $m_name = trim($pm['method_name']);$icon = 'bi-credit-card';
+                        if (strcasecmp($m_name, 'Banque Postal') === 0 || strcasecmp($m_name, 'Virement') === 0) {$icon = 'bi-bank';
+                        } elseif (strcasecmp($m_name, 'PayPal') === 0) {$icon = 'bi-currency-dollar';
                         } elseif (strcasecmp($m_name, 'Espèces') === 0) {
                             $icon = 'bi-cash-stack';
                         }
