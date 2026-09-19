@@ -4,10 +4,10 @@ ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 
 require_once 'db.php';
-require_once 'header.php';
 
 $error = '';
 
+// 1. Сначала обрабатываем POST-запрос и редирект (ДО хедера!)
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $username = trim($_POST['username'] ?? '');
     $nom      = trim($_POST['nom'] ?? '');
@@ -46,6 +46,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 }
+
+// 2. Теперь подключаем хедер
+require_once 'header.php';
 ?>
 
 <title>Ajouter un utilisateur — NumériqueAide</title>
@@ -69,21 +72,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <form method="POST" autocomplete="off">
                 <div class="mb-3">
                     <label class="form-label fw-semibold">Username</label>
-                    <input type="text" name="username" class="form-control" autocomplete="off" required>
+                    <input type="text" name="username" class="form-control" autocomplete="off" required value="<?= htmlspecialchars($_POST['username'] ?? ''); ?>">
                 </div>
 
                 <div class="row">
                     <div class="col-md-6 mb-3">
                         <label class="form-label fw-semibold">Nom</label>
-                        <input type="text" name="nom" class="form-control" autocomplete="off">
+                        <input type="text" name="nom" class="form-control" autocomplete="off" value="<?= htmlspecialchars($_POST['nom'] ?? ''); ?>">
                     </div>
                     <div class="col-md-6 mb-3">
                         <label class="form-label fw-semibold">Prénom</label>
-                        <input type="text" name="prenom" class="form-control" autocomplete="off">
+                        <input type="text" name="prenom" class="form-control" autocomplete="off" value="<?= htmlspecialchars($_POST['prenom'] ?? ''); ?>">
                     </div>
                 </div>
 
-                <!-- Поле пароля с кнопкой-глазиком и защитой от автозаполнения -->
                 <div class="mb-3">
                     <label class="form-label fw-semibold">Mot de passe</label>
                     <div class="input-group">
@@ -97,17 +99,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <div class="mb-3">
                     <label class="form-label fw-semibold">Type d'utilisateur</label>
                     <select name="type" class="form-select">
-                        <option value="User">User</option>
-                        <option value="PowerUser">PowerUser</option>
-                        <option value="Admin">Admin</option>
+                        <option value="User" <?= (($_POST['type'] ?? '') === 'User') ? 'selected' : ''; ?>>User</option>
+                        <option value="PowerUser" <?= (($_POST['type'] ?? '') === 'PowerUser') ? 'selected' : ''; ?>>PowerUser</option>
+                        <option value="Admin" <?= (($_POST['type'] ?? '') === 'Admin') ? 'selected' : ''; ?>>Admin</option>
                     </select>
                 </div>
 
                 <div class="mb-4">
                     <label class="form-label fw-semibold">Statut</label>
                     <select name="status" class="form-select">
-                        <option value="Active">Active</option>
-                        <option value="Inactive">Inactive</option>
+                        <option value="Active" <?= (($_POST['status'] ?? '') === 'Active') ? 'selected' : ''; ?>>Active</option>
+                        <option value="Inactive" <?= (($_POST['status'] ?? '') === 'Inactive') ? 'selected' : ''; ?>>Inactive</option>
                     </select>
                 </div>
 
@@ -121,7 +123,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </div>
 </div>
 
-<!-- Скрипт для переключения видимости пароля -->
 <script>
     document.getElementById('togglePassword').addEventListener('click', function () {
         const passwordField = document.getElementById('passwordField');

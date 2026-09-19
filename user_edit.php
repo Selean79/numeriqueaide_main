@@ -4,7 +4,6 @@ ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 
 require_once 'db.php';
-require_once 'header.php';
 
 $error = '';
 
@@ -16,7 +15,7 @@ if ($id <= 0) {
     exit;
 }
 
-// Обработка отправки формы
+// 1. Сначала обрабатываем отправку формы и редирект (ДО хедера!)
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $username = trim($_POST['username'] ?? '');
     $nom      = trim($_POST['nom'] ?? '');
@@ -29,14 +28,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $error = "Le nom d'utilisateur est obligatoire.";
     } else {
         try {
-            // Проверяем, не занят ли логин другим пользователем
             $stmt = $pdo->prepare("SELECT id FROM users WHERE username = :username AND id != :id LIMIT 1");
             $stmt->execute([':username' => $username, ':id' => $id]);
 
             if ($stmt->fetch()) {
                 $error = "Ce nom d'utilisateur est déjà pris par un autre utilisateur.";
             } else {
-                // Если введен новый пароль, обновляем и его
                 if (!empty($password)) {
                     $hashed_password = password_hash($password, PASSWORD_DEFAULT);
                     $updateStmt = $pdo->prepare("UPDATE users SET username = :username, nom = :nom, prenom = :prenom, password = :password, type = :type, status = :status WHERE id = :id");
@@ -50,7 +47,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         ':id'       => $id
                     ]);
                 } else {
-                    // Обновляем без изменения пароля
                     $updateStmt = $pdo->prepare("UPDATE users SET username = :username, nom = :nom, prenom = :prenom, type = :type, status = :status WHERE id = :id");
                     $updateStmt->execute([
                         ':username' => $username,
@@ -71,7 +67,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-// Загружаем данные текущего пользователя
+// Загружаем данные текущего пользователя для отображения в форме
 try {
     $stmt = $pdo->prepare("SELECT * FROM users WHERE id = :id LIMIT 1");
     $stmt->execute([':id' => $id]);
@@ -84,6 +80,9 @@ try {
 } catch (PDOException $e) {
     die("Erreur : " . htmlspecialchars($e->getMessage()));
 }
+
+// 2. Теперь подключаем хедер
+require_once 'header.php';
 ?>
 
 <title>Modifier l'utilisateur — NumériqueAide</title>
@@ -121,7 +120,6 @@ try {
                     </div>
                 </div>
 
-                <!-- Поле пароля с кнопкой-глазиком -->
                 <div class="mb-3">
                     <label class="form-label fw-semibold">Nouveau mot de passe</label>
                     <div class="input-group">
@@ -162,7 +160,6 @@ try {
     </div>
 </div>
 
-<!-- Скрипт для переключения видимости пароля -->
 <script>
     document.getElementById('togglePassword').addEventListener('click', function () {
         const passwordField = document.getElementById('passwordField');
