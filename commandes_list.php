@@ -459,8 +459,8 @@ require_once 'header.php';
     .order-group-odd { background-color: #ffffff !important; }
     
     /* Принудительная покраска всей строки для статусов */
-    tr.row-status-en-cours, tr.row-status-en-cours > td { background-color: #fef08a !important; }
-    tr.row-status-annulee, tr.row-status-annulee > td { background-color: #fecaca !important; }
+    tr.row-status-en-cours, tr.row-status-en-cours > td { background-color: #fffad6 !important; }
+    tr.row-status-annulee, tr.row-status-annulee > td { background-color: #fee3e3 !important; }
     tr.row-status-paye, tr.row-status-paye > td { background-color: #e1e7eb !important; }
 
     /* Обычная зеленая шапка таблицы (без липкости, чтобы не перекрывать строки) */
