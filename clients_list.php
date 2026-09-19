@@ -5,6 +5,13 @@ error_reporting(E_ALL);
 
 // Подключаем базу данных
 require_once 'db.php';
+
+// Сброс фильтра поиска
+if (isset($_GET['clear_filter'])) {
+    header("Location: clients_list.php");
+    exit;
+}
+
 require_once 'header.php'; // Подключаем хедер первым, чтобы сессия точно работала
 
 // 1. Защита: если пользователь тип User, блокируем попытку удаления через URL
@@ -13,11 +20,7 @@ if (isset($_SESSION['type']) && $_SESSION['type'] === 'User' && isset($_GET['del
     exit;
 }
 
-// Сброс фильтра поиска
-if (isset($_GET['clear_filter'])) {
-    header("Location: clients_list.php");
-    exit;
-}
+
 
 // 2. Обрабатываем удаление клиента (доступно только для Admin и PowerUser)
 if (isset($_GET['delete_id'])) {
@@ -36,13 +39,8 @@ if (isset($_GET['delete_id'])) {
 // Получаем поисковый запрос
 $search = trim($_GET['search'] ?? '');
 
-// Безопасное извлечение только цифр
-$search_clean = '';
-for ($i = 0; $i < strlen($search); $i++) {
-    if ($search[$i] >= '0' && $search[$i] <= '9') {
-        $search_clean .= $search[$i];
-    }
-}
+// Безопасное извлечение только цифр из поискового запроса
+$search_clean = preg_replace('/[^0-9]/', '', $search);
 
 // Параметры сортировки
 $allowed_sorts = [
@@ -75,7 +73,8 @@ try {
             OR email LIKE :search";
 
         if (!empty($search_clean)) {
-            $sql .= " OR REPLACE(REPLACE(REPLACE(REPLACE(telephone, ' ', ''), '+', ''), '33', ''), '-', '') LIKE :search_clean";
+            // REGEXP_REPLACE удаляет любые символы, кроме цифр (точки, пробелы, дефисы, скобки, плюсы)
+            $sql .= " OR REGEXP_REPLACE(telephone, '[^0-9]', '') LIKE :search_clean";
             $params[':search_clean'] = "%$search_clean%";
         }
 
