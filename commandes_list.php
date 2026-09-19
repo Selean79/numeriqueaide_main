@@ -709,7 +709,7 @@ require_once 'header.php';
                                     </td>
                                     <td class="fw-semibold">
                                         <?php if (!empty(trim($order['client_name']))): ?>
-                                            <a href="edit_client.php?id=<?= (int)$order['client_id']; ?>&return_order=<?= (int)$order['id']; ?>" class="text-decoration-none text-dark" title="Modifier le client">
+                                            <a href="#" onclick="openClientModal('edit_client.php?id=<?= (int)$order['client_id']; ?>&modal=1', 'Modifier le client', 'bg-primary'); return false;" class="text-decoration-none text-dark" title="Modifier le client">
                                                 <?= htmlspecialchars(trim($order['client_name'])); ?>
                                             </a>
                                         <?php else: ?>
@@ -854,6 +854,27 @@ require_once 'header.php';
     </div>
 </div>
 
+<!-- Модальное окно для редактирования клиента -->
+<div class="modal fade" id="clientModal" tabindex="-1" aria-labelledby="clientModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white" id="clientModalHeader">
+                <h5 class="modal-title" id="clientModalLabel">
+                    <i class="bi bi-person-gear me-1"></i> <span id="clientModalTitleText">Modifier le client</span>
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="clientModalBody">
+                <div class="text-center py-4">
+                    <div class="spinner-border text-success" role="status">
+                        <span class="visually-hidden">Chargement...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
 <button type="button" class="btn btn-success btn-lg rounded-circle shadow" id="btn-back-to-bottom" style="position: fixed; bottom: 80px; right: 20px; display: none; z-index: 9999;" title="Прокрутить вниз">
@@ -866,6 +887,7 @@ require_once 'header.php';
 
 <script>
     const commandeModal = new bootstrap.Modal(document.getElementById('commandeModal'));
+    const clientModal = new bootstrap.Modal(document.getElementById('clientModal'));
 
     function openCommandeModal(url, title, headerClass) {
         document.getElementById('cmdModalTitleText').innerText = title;
@@ -917,6 +939,103 @@ require_once 'header.php';
                 document.getElementById('cmdModalBody').innerHTML = '<div class="alert alert-danger">Erreur de chargement du formulaire.</div>';
             });
     }
+
+    function openClientModal(url, title, headerClass) {
+        document.getElementById('clientModalTitleText').innerText = title;
+        document.getElementById('clientModalHeader').className = 'modal-header ' + headerClass + ' text-white';
+        
+        document.getElementById('clientModalBody').innerHTML = `
+            <div class="text-center py-4">
+                <div class="spinner-border text-success" role="status">
+                    <span class="visually-hidden">Chargement...</span>
+                </div>
+            </div>
+        `;
+        
+        clientModal.show();
+
+        fetch(url)
+            .then(response => response.text())
+            .then(html => {
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(html, 'text/html');
+                const content = doc.querySelector('.container, .container-fluid, form') || doc.body;
+                
+                document.getElementById('clientModalBody').innerHTML = content.outerHTML;
+                
+                const modalForm = document.getElementById('clientModalBody').querySelector('form');
+                if (modalForm) {
+                    const cleanUrl = url.split('&modal=1')[0].replace('?modal=1', '');
+                    modalForm.action = cleanUrl;
+                    
+                    modalForm.addEventListener('submit', function(e) {
+                        e.preventDefault();
+                        const formData = new FormData(modalForm);
+                        
+                        fetch(cleanUrl, {
+                            method: 'POST',
+                            body: formData
+                        })
+                        .then(res => {
+                            if (res.redirected) {
+                                window.location.href = res.url;
+                            } else {
+                                window.location.reload();
+                            }
+                        })
+                        .catch(err => {
+                            modalForm.submit();
+                        });
+                    });
+                }
+            })
+            .catch(error => {
+                document.getElementById('clientModalBody').innerHTML = '<div class="alert alert-danger">Erreur de chargement du formulaire.</div>';
+            });
+    }
+
+    // Универсальный обработчик маски телефона для модальных окон
+    document.addEventListener('input', function (e) {
+        if (e.target && e.target.id === 'telephoneInput') {
+            let input = e.target;
+            let digits = input.value.replace(/\D/g, '');
+            
+            if (digits.startsWith('33')) {
+                digits = digits.slice(2);
+            } else if (digits.startsWith('0')) {
+                digits = digits.slice(1);
+            }
+            
+            digits = digits.slice(0, 9);
+
+            let formatted = '+33';
+            if (digits.length > 0) {
+                formatted += ' ' + digits.substring(0, 1);
+            }
+            if (digits.length > 1) {
+                formatted += ' ' + digits.substring(1, 3);
+            }
+            if (digits.length > 3) {
+                formatted += ' ' + digits.substring(3, 5);
+            }
+            if (digits.length > 5) {
+                formatted += ' ' + digits.substring(5, 7);
+            }
+            if (digits.length > 7) {
+                formatted += ' ' + digits.substring(7, 9);
+            }
+            
+            input.value = formatted;
+        }
+    });
+
+    document.addEventListener('focusin', function (e) {
+        if (e.target && e.target.id === 'telephoneInput') {
+            if (!e.target.value || e.target.value.trim() === '' || e.target.value.trim() === '+') {
+                e.target.value = '+33 ';
+            }
+        }
+    });
 
     document.addEventListener("DOMContentLoaded", function () {
         if (window.location.hash) {
