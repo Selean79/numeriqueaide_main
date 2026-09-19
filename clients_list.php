@@ -3,146 +3,116 @@ ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 
-// Подключаем базу данных
 require_once 'db.php';
 
-// Сброс фильтра перенесен ДО подключения хедера, чтобы headers не успели уйти
-if (isset($_GET['clear_filter'])) {
-    header("Location: clients_list.php");
-    exit;
+/** @var PDO $pdo */
+global $pdo;
+
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
 }
 
-require_once 'header.php'; // Подключаем хедер после проверки редиректа
-
-// 1. Защита: если пользователь тип User, блокируем попытку удаления через URL
-if (isset($_SESSION['type']) && $_SESSION['type'] === 'User' && isset($_GET['delete_id'])) {
-    header("Location: clients_list.php");
-    exit;
-}
-
-// 2. Обрабатываем удаление клиента (доступно только для Admin и PowerUser)
+/*
+|--------------------------------------------------------------------------
+| Удаление клиента
+|--------------------------------------------------------------------------
+*/
 if (isset($_GET['delete_id'])) {
     $delete_id = (int)$_GET['delete_id'];
+
     try {
-        $stmt = $pdo->prepare("DELETE FROM clients WHERE id = :id");
-        $stmt->execute([':id' => $delete_id]);
+        $stmt =$pdo->prepare("DELETE FROM clients WHERE id = :id");
+        $stmt->execute([':id' =>$delete_id]);
 
-        echo '<script>window.location.href = "clients_list.php?deleted=1";</script>';
+        header("Location: clients_list.php?deleted=1");
         exit;
-    } catch (PDOException $e) {
-        $error_message = "Ошибка при удалении: " . $e->getMessage();
+    } catch (PDOException $e) {$error_message = "Erreur lors de la suppression : " . $e->getMessage();
     }
 }
 
-// Получаем поисковый запрос
-$search = trim($_GET['search'] ?? '');
-
-// Безопасное извлечение только цифр из поискового запроса
-$search_clean = preg_replace('/[^0-9]/', '', $search);
-
-// Параметры сортировки
-$allowed_sorts = [
-        'id' => 'id',
-        'nom' => 'nom',
-        'societe' => 'societe',
-        'telephone' => 'telephone',
-        'email' => 'email',
-        'adresse' => 'adresse'
-];
-
-$sort = $_GET['sort'] ?? 'nom';
-if (!array_key_exists($sort, $allowed_sorts)) {
-    $sort = 'nom';
+/*
+|--------------------------------------------------------------------------
+| Сброс фильтров
+|--------------------------------------------------------------------------
+*/
+if (isset($_GET['clear_filter'])) {
+    unset($_SESSION['client_search']);
+    header("Location: clients_list.php");
+    exit;
 }
 
-$order = strtolower($_GET['order'] ?? 'asc') === 'desc' ? 'DESC' : 'ASC';
-$next_order = ($order === 'ASC') ? 'desc' : 'asc';
+/*
+|--------------------------------------------------------------------------
+| Поиск клиентов
+|--------------------------------------------------------------------------
+*/
+if (isset($_GET['search'])) {
+    $_SESSION['client_search'] = trim($_GET['search']);
+}
 
-// 3. Загружаем список клиентов из базы данных
+$search =$_SESSION['client_search'] ?? '';
+
+$sql = "SELECT * FROM clients WHERE 1=1";
+$params = [];
+
+if (!empty($search)) {$sql .= " AND (nom LIKE :search OR prenom LIKE :search OR telephone LIKE :search OR email LIKE :search OR adresse LIKE :search OR notes LIKE :search)";
+    $params[':search'] = "\%$search%";
+}
+
+$sql .= " ORDER BY id DESC";
+
 try {
-    $sql = "SELECT * FROM clients WHERE 1=1";
-    $params = [];
-
-    if (!empty($search)) {
-        $sql .= " AND (
-            nom LIKE :search 
-            OR prenom LIKE :search 
-            OR adresse LIKE :search 
-            OR email LIKE :search";
-
-        if (!empty($search_clean)) {
-            // REGEXP_REPLACE удаляет любые символы, кроме цифр (точки, пробелы, дефисы, скобки, плюсы)
-            $sql .= " OR REGEXP_REPLACE(telephone, '[^0-9]', '') LIKE :search_clean";
-            $params[':search_clean'] = "%$search_clean%";
-        }
-
-        $sql .= ")";
-        $params[':search'] = "%$search%";
-    }
-
-    $sql .= " ORDER BY " . $allowed_sorts[$sort] . " " . $order;
-    if ($sort !== 'id') {
-        $sql .= ", id DESC";
-    }
-
     $stmt = $pdo->prepare($sql);
     $stmt->execute($params);
-    $clients = $stmt->fetchAll();
+    $clients =$stmt->fetchAll();
 } catch (PDOException $e) {
-    die("Ошибка загрузки клиентов: " . htmlspecialchars($e->getMessage()));
+    die("Erreur de chargement : " . htmlspecialchars($e->getMessage()));
 }
 
-// Функция для генерации ссылки сортировки
-function sortLink($column, $label, $current_sort, $current_order, $search) {
-    global $next_order;
-    $new_order = ($current_sort === $column) ? $next_order : 'asc';
-    $icon = '';
-    if ($current_sort === $column) {
-        $icon = ($current_order === 'ASC') ? ' <i class="bi bi-sort-up small"></i>' : ' <i class="bi bi-sort-down small"></i>';
-    }
-    $query_params = ['sort' => $column, 'order' => $new_order];
-    if (!empty($search)) {
-        $query_params['search'] = $search;
-    }
-    $url = 'clients_list.php?' . http_build_query($query_params);
-    return '<a href="' . $url . '" class="text-decoration-none text-dark d-block">' . $label . $icon . '</a>';
-}
+require_once 'header.php';
 ?>
 
 <title>Liste des clients — NumériqueAide</title>
 
 <style>
-    .table-header-custom th {
-        background-color: #82e89e !important;
-        color: #020202 !important;
+    body { background-color: #d3d1d1 !important; }
+    .table-header-custom th { 
+        background-color: #82e89e !important; 
+        color: #020202 !important; 
     }
-    body {
-        background-color: #d3d1d1 !important;
+    .table-header-custom th a { color: #020202 !important; }
+    /* Винный цвет для бэйджа Société */
+    .badge-wine {
+        background-color: #722F37 !important;
+        color: #ffffff !important;
     }
 </style>
 
-<div class="container-fluid mt-4 px-4">
+<div class="container-fluid mt-4 px-4" style="max-width: 1400px;">
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h3 class="mb-0"><i class="bi bi-people me-2"></i>Liste des clients</h3>
-
-        <!-- Кнопка добавления видна только Admin и PowerUser -->
-        <?php if (isset($_SESSION['type']) && $_SESSION['type'] !== 'User'): ?>
-            <a href="add_client.php" class="btn btn-success">
-                <i class="bi bi-person-plus me-1"></i> Ajouter un client
-            </a>
-        <?php endif; ?>
+        <button type="button" class="btn btn-success" onclick="openClientModal('add_client.php?modal=1', 'Ajouter un client', 'bg-success')">
+            <i class="bi bi-person-plus me-1"></i> Ajouter un client
+        </button>
     </div>
 
-    <?php if (isset($_GET['deleted'])): ?>
-        <div class="alert alert-warning alert-dismissible fade show" role="alert">
-            Le client a été supprimé avec succès.
+    <?php if (isset($_GET['added'])): ?>
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            Client ajouté avec succès !
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
     <?php endif; ?>
 
-    <?php if (isset($_GET['added'])): ?>
+    <?php if (isset($_GET['updated'])): ?>
         <div class="alert alert-success alert-dismissible fade show" role="alert">
-            Le client a été ajouté avec succès !
+            Client modifié avec succès !
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    <?php endif; ?>
+
+    <?php if (isset($_GET['deleted'])): ?>
+        <div class="alert alert-warning alert-dismissible fade show" role="alert">
+            Client supprimé avec succès !
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
     <?php endif; ?>
@@ -154,116 +124,106 @@ function sortLink($column, $label, $current_sort, $current_order, $search) {
         </div>
     <?php endif; ?>
 
-    <!-- Блок поиска -->
+    <!-- Поиск -->
     <div class="card shadow-sm mb-4">
         <div class="card-body">
             <form method="GET" class="row g-2 align-items-end">
-                <?php if (!empty($sort)): ?>
-                    <input type="hidden" name="sort" value="<?= htmlspecialchars($sort); ?>">
-                <?php endif; ?>
-                <?php if (!empty($order)): ?>
-                    <input type="hidden" name="order" value="<?= htmlspecialchars($order); ?>">
-                <?php endif; ?>
-                <div class="col-md-4">
+                <div class="col-md-10">
                     <label class="form-label small text-muted mb-1">Recherche</label>
-                    <input type="text" name="search" class="form-control" placeholder="nom, téléphone, adresse, email..." value="<?= htmlspecialchars($search); ?>">
+                    <input type="text" name="search" class="form-control" placeholder="Nom, prénom, téléphone, email, notes..." value="<?= htmlspecialchars($search); ?>">
                 </div>
                 <div class="col-md-2 d-flex gap-1">
-                    <button type="submit" class="btn btn-primary flex-grow-1" title="Trouver">
-                        <i class="bi bi-search me-1"></i> Trouver
-                    </button>
-                    <a href="clients_list.php?clear_filter=1" class="btn btn-outline-secondary" title="Сбросить фильтр">
-                        <i class="bi bi-x-circle"></i>
-                    </a>
+                    <button type="submit" class="btn btn-primary flex-grow-1"><i class="bi bi-search me-1"></i> Trouver</button>
+                    <a href="clients_list.php?clear_filter=1" class="btn btn-outline-secondary" title="Сбросить фильтр"><i class="bi bi-x-circle"></i></a>
                 </div>
             </form>
         </div>
     </div>
 
+    <!-- Таблица клиентов -->
     <div class="card shadow-sm">
         <div class="card-body p-0">
             <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0" style="min-width: 1000px;">
+                <table class="table table-hover align-middle mb-0">
                     <thead class="table-header-custom">
-                    <tr>
-                        <th style="width: 60px;" class="text-center"><?= sortLink('id', '#', $sort, $order, $search); ?></th>
-                        <th style="width: 220px;"><?= sortLink('nom', 'Nom', $sort, $order, $search); ?></th>
-                        <th style="width: 130px;"><?= sortLink('societe', 'Type', $sort, $order, $search); ?></th>
-                        <th style="width: 170px;" class="text-nowrap"><?= sortLink('telephone', 'Téléphone', $sort, $order, $search); ?></th>
-                        <th style="width: 200px;"><?= sortLink('email', 'Email', $sort, $order, $search); ?></th>
-                        <th><?= sortLink('adresse', 'Adresse', $sort, $order, $search); ?></th>
-                        <th>Notes</th>
-                        <th style="width: 100px;" class="text-center">Actions</th>
-                    </tr>
+                        <tr>
+                            <th style="width: 50px;" class="text-center">#</th>
+                            <th>Nom & Prénom</th>
+                            <th style="width: 120px;" class="text-center">Type</th>
+                            <th style="width: 160px;" class="text-nowrap">Téléphone</th>
+                            <th>Email</th>
+                            <th>Adresse</th>
+                            <th style="width: 80px;" class="text-center">Notes</th>
+                            <th style="width: 100px;" class="text-center">Actions</th>
+                        </tr>
                     </thead>
                     <tbody>
-                    <?php if (empty($clients)): ?>
-                        <tr>
-                            <td colspan="8" class="text-center py-4 text-muted">Aucun client n'a encore été ajouté</td>
-                        </tr>
-                    <?php else: ?>
-                        <?php foreach ($clients as $client): ?>
-                            <tr id="client-<?= (int)$client['id']; ?>">
-                                <td class="text-center fw-bold text-secondary"><?= $client['id']; ?></td>
-
-                                <td class="fw-bold">
-                                    <?php if (isset($_SESSION['type']) && $_SESSION['type'] !== 'User'): ?>
-                                        <a href="edit_client.php?id=<?= (int)$client['id']; ?>" class="text-decoration-none text-dark" title="Modifier le client">
-                                            <?= htmlspecialchars(trim(($client['nom'] ?? '') . ' ' . ($client['prenom'] ?? ''))); ?>
-                                        </a>
-                                    <?php else: ?>
+                        <?php if (empty($clients)): ?>
+                            <tr>
+                                <td colspan="8" class="text-center py-4 text-muted">Aucun client trouvé</td>
+                            </tr>
+                        <?php else: ?>
+                            <?php foreach ($clients as$client): ?>
+                                <tr id="client-<?= (int)$client['id']; ?>">
+                                    <td class="text-center fw-bold text-secondary"><?= $client['id']; ?></td>
+                                    <td class="fw-bold">
                                         <?= htmlspecialchars(trim(($client['nom'] ?? '') . ' ' . ($client['prenom'] ?? ''))); ?>
-                                    <?php endif; ?>
-                                </td>
-
-                                <td>
-                                    <?php if (!empty($client['societe'])): ?>
-                                        <span class="badge bg-primary">Entreprise</span>
-                                    <?php else: ?>
-                                        <span class="badge bg-secondary">Particulier</span>
-                                    <?php endif; ?>
-                                </td>
-
-                                <td class="text-nowrap fw-semibold text-primary">
-                                    <?php if (!empty($client['telephone'])): ?>
-                                        <?= str_replace(' ', '&nbsp;', htmlspecialchars($client['telephone'])); ?>
-                                    <?php else: ?>
-                                        <span class="text-muted">—</span>
-                                    <?php endif; ?>
-                                </td>
-
-                                <td>
-                                    <?php if (!empty($client['email'])): ?>
-                                        <a href="mailto:<?= htmlspecialchars($client['email']); ?>" class="text-decoration-none">
-                                            <?= htmlspecialchars($client['email']); ?>
-                                        </a>
-                                    <?php else: ?>
-                                        <span class="text-muted">—</span>
-                                    <?php endif; ?>
-                                </td>
-
-                                <td><?= !empty($client['adresse']) ? htmlspecialchars($client['adresse']) : '<span class="text-muted">—</span>'; ?></td>
-
-                                <td><small class="text-muted"><?= !empty($client['notes']) ? htmlspecialchars($client['notes']) : '—'; ?></small></td>
-
-                                <td class="text-center text-nowrap">
-                                    <?php if (isset($_SESSION['type']) && $_SESSION['type'] !== 'User'): ?>
-                                        <a href="edit_client.php?id=<?= $client['id']; ?>" class="btn btn-sm btn-outline-primary me-1" title="Modifier">
+                                    </td>
+                                    <td class="text-center">
+                                        <?php if (!empty($client['societe'])): ?>
+                                            <span class="badge badge-wine">Société</span>
+                                        <?php else: ?>
+                                            <span class="badge bg-secondary">Particulier</span>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td class="text-nowrap">
+                                        <?php if (!empty($client['telephone'])): ?>
+                                            <a href="tel:<?= htmlspecialchars($client['telephone']); ?>" class="text-decoration-none">
+                                                <i class="bi bi-telephone text-primary me-1"></i><?= htmlspecialchars($client['telephone']); ?>
+                                            </a>
+                                        <?php else: ?>
+                                            <span class="text-muted">—</span>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td>
+                                        <?php if (!empty($client['email'])): ?>
+                                            <a href="mailto:<?= htmlspecialchars($client['email']); ?>" class="text-decoration-none">
+                                                <i class="bi bi-envelope text-secondary me-1"></i><?= htmlspecialchars($client['email']); ?>
+                                            </a>
+                                        <?php else: ?>
+                                            <span class="text-muted">—</span>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td>
+                                        <?php if (!empty($client['adresse'])): ?>
+                                            <a href="https://www.google.com/maps/search/?api=1&query=<?= urlencode($client['adresse']); ?>" target="_blank" class="text-decoration-none text-muted">
+                                                <i class="bi bi-geo-alt text-danger me-1"></i><?= htmlspecialchars($client['adresse']); ?>
+                                            </a>
+                                            <?php if (!empty($client['adresse_2'])): ?>
+                                                <div class="small text-muted"><?= htmlspecialchars($client['adresse_2']); ?></div>
+                                            <?php endif; ?>
+                                        <?php else: ?>
+                                            <span class="text-muted">—</span>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td class="text-center">
+                                        <?php if (!empty(trim($client['notes'] ?? ''))): ?>
+                                            <i class="bi bi-exclamation-circle-fill text-danger" style="cursor: pointer; font-size: 1.1rem;" title="<?= htmlspecialchars($client['notes']); ?>"></i>
+                                        <?php else: ?>
+                                            <span class="text-muted">—</span>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td class="text-center text-nowrap">
+                                        <button type="button" class="btn btn-sm btn-outline-primary me-1" onclick="openClientModal('edit_client.php?id=<?= (int)$client['id']; ?>&modal=1', 'Modifier le client', 'bg-primary')" title="Modifier">
                                             <i class="bi bi-pencil"></i>
-                                        </a>
-                                        <a href="clients_list.php?delete_id=<?= $client['id']; ?>"
-                                           class="btn btn-sm btn-outline-danger"
-                                           onclick="return confirm('Êtes-vous sûr de vouloir supprimer ce client?');"
-                                           title="Supprimer">
+                                        </button>
+                                        <a href="clients_list.php?delete_id=<?= (int)$client['id']; ?>" class="btn btn-sm btn-outline-danger" onclick="return confirm('Êtes-vous sûr de vouloir supprimer ce client ?');" title="Supprimer">
                                             <i class="bi bi-trash"></i>
                                         </a>
-                                    <?php else: ?>
-                                        <span class="text-muted">—</span>
-                                    <?php endif; ?>
-                                </td>
-                            </tr>
-                        <?php endforeach; ?>
-                    <?php endif; ?>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
                     </tbody>
                 </table>
             </div>
@@ -271,8 +231,108 @@ function sortLink($column, $label, $current_sort, $current_order, $search) {
     </div>
 </div>
 
+<!-- Модальное окно для создания/редактирования клиента -->
+<div class="modal fade" id="clientModal" tabindex="-1" aria-labelledby="clientModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white" id="clientModalHeader">
+                <h5 class="modal-title" id="clientModalLabel">
+                    <i class="bi bi-person-plus me-1"></i> <span id="clientModalTitleText">Ajouter un client</span>
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="clientModalBody">
+                <div class="text-center py-4">
+                    <div class="spinner-border text-success" role="status">
+                        <span class="visually-hidden">Chargement...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
+    const clientModal = new bootstrap.Modal(document.getElementById('clientModal'));
+
+    function openClientModal(url, title, headerClass) {
+        document.getElementById('clientModalTitleText').innerText = title;
+        document.getElementById('clientModalHeader').className = 'modal-header ' + headerClass + ' text-white';
+        
+        document.getElementById('clientModalBody').innerHTML = `
+            <div class="text-center py-4">
+                <div class="spinner-border text-success" role="status">
+                    <span class="visually-hidden">Chargement...</span>
+                </div>
+            </div>
+        `;
+        
+        clientModal.show();
+
+        fetch(url)
+            .then(response => response.text())
+            .then(html => {
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(html, 'text/html');
+                const content = doc.querySelector('.container, .container-fluid, form') || doc.body;
+                
+                document.getElementById('clientModalBody').innerHTML = content.outerHTML;
+                
+                const modalForm = document.getElementById('clientModalBody').querySelector('form');
+                if (modalForm) {
+                    const cleanUrl = url.split('&modal=1')[0].replace('?modal=1', '');
+                    modalForm.action = cleanUrl;
+                }
+            })
+            .catch(error => {
+                document.getElementById('clientModalBody').innerHTML = '<div class="alert alert-danger">Erreur de chargement du formulaire.</div>';
+            });
+    }
+
+    // Универсальный обработчик маски телефона для модальных и обычных окон
+    document.addEventListener('input', function (e) {
+        if (e.target && e.target.id === 'telephoneInput') {
+            let input = e.target;
+            let digits = input.value.replace(/\D/g, '');
+            
+            if (digits.startsWith('33')) {
+                digits = digits.slice(2);
+            } else if (digits.startsWith('0')) {
+                digits = digits.slice(1);
+            }
+            
+            digits = digits.slice(0, 9);
+
+            let formatted = '+33';
+            if (digits.length > 0) {
+                formatted += ' ' + digits.substring(0, 1);
+            }
+            if (digits.length > 1) {
+                formatted += ' ' + digits.substring(1, 3);
+            }
+            if (digits.length > 3) {
+                formatted += ' ' + digits.substring(3, 5);
+            }
+            if (digits.length > 5) {
+                formatted += ' ' + digits.substring(5, 7);
+            }
+            if (digits.length > 7) {
+                formatted += ' ' + digits.substring(7, 9);
+            }
+            
+            input.value = formatted;
+        }
+    });
+
+    document.addEventListener('focusin', function (e) {
+        if (e.target && e.target.id === 'telephoneInput') {
+            if (!e.target.value || e.target.value.trim() === '' || e.target.value.trim() === '+') {
+                e.target.value = '+33 ';
+            }
+        }
+    });
+
     document.addEventListener("DOMContentLoaded", function () {
         if (window.location.hash) {
             const targetElement = document.querySelector(window.location.hash);

@@ -5,32 +5,26 @@ error_reporting(E_ALL);
 
 require_once 'db.php';
 
-$message = '';
+$error = '';
 
-// 1. Сначала обрабатываем отправку формы (ДО подключения header.php!)
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $nom        = trim($_POST['nom'] ?? '');
-    $prenom     = trim($_POST['prenom'] ?? '');
-    $adresse    = trim($_POST['adresse'] ?? '');
-    $adresse_2  = trim($_POST['adresse_2'] ?? '');
-    $telephone  = trim($_POST['telephone'] ?? '');
-    $email      = trim($_POST['email'] ?? '');
-    $notes      = trim($_POST['notes'] ?? '');
-    $societe    = isset($_POST['societe']) ? 1 : 0;
+    $nom                  = trim($_POST['nom'] ?? '');
+    $prenom               = trim($_POST['prenom'] ?? '');
+    $adresse              = trim($_POST['adresse'] ?? '');
+    $adresse_2            = trim($_POST['adresse_2'] ?? '');
+    $telephone            = trim($_POST['telephone'] ?? '');
+    $email                = trim($_POST['email'] ?? '');
+    $societe              = isset($_POST['societe']) ? 1 : 0;
+    $notes                = trim($_POST['notes'] ?? '');
 
-    if (empty($nom) && empty($prenom)) {
-        $message = '<div class="alert alert-danger">Veuillez renseigner au moins le Nom ou le Prénom !</div>';
+    if (empty($nom)) {
+        $error = "Le champ Nom est obligatoire.";
     } else {
         try {
             $stmt = $pdo->prepare("
-                INSERT INTO clients (nom, prenom, adresse, adresse_2, telephone, email, notes, societe)
-                VALUES (:nom, :prenom, :adresse, :adresse_2, :telephone, :email, :notes, :societe)
+                INSERT INTO clients (nom, prenom, adresse, adresse_2, telephone, email, societe, notes) 
+                VALUES (:nom, :prenom, :adresse, :adresse_2, :telephone, :email, :societe, :notes)
             ");
-            
-            if ($stmt === false) {
-                throw new Exception("Erreur de préparation de la requête SQL.");
-            }
-
             $stmt->execute([
                 ':nom'       => $nom,
                 ':prenom'    => $prenom,
@@ -38,82 +32,89 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 ':adresse_2' => $adresse_2,
                 ':telephone' => $telephone,
                 ':email'     => $email,
-                ':notes'     => $notes,
-                ':societe'   => $societe
+                ':societe'   => $societe,
+                ':notes'     => $notes
             ]);
 
-            // Получаем ID только что созданного клиента
-            $new_client_id = $pdo->lastInsertId();
+            $new_id = $pdo->lastInsertId();
 
-            // Перенаправляем на список клиентов к конкретной строке через якорь
-            header("Location: clients_list.php?added=1#client-" . $new_client_id);
+            header("Location: clients_list.php?added=1#client-" . $new_id);
             exit;
-        } catch (Exception $e) {
-            $message = '<div class="alert alert-danger">Erreur d\'enregistrement : ' . htmlspecialchars($e->getMessage()) . '</div>';
+        } catch (PDOException $e) {
+            $error = "Erreur de base de données : " . $e->getMessage();
         }
     }
 }
 
-// 2. Только теперь подключаем хедер с вашим неизменным дизайном
-require_once 'header.php';
+$is_modal = isset($_GET['modal']);
+if (!$is_modal) {
+    require_once 'header.php';
+}
 ?>
 
 <title>Ajouter un client — NumériqueAide</title>
 
 <div class="container mt-4 mb-5" style="max-width: 650px;">
-    <div class="card shadow-sm">
-        <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
-            <h4 class="mb-0"><i class="bi bi-person-plus me-2"></i>Ajouter un client</h4>
-            <a href="clients_list.php" class="btn btn-sm btn-outline-light">Liste des clients</a>
+    <?php if (!$is_modal): ?>
+        <div class="d-flex align-items-center mb-4">
+            <a href="clients_list.php" class="btn btn-outline-secondary btn-sm me-3"><i class="bi bi-arrow-left"></i> Retour</a>
+            <h3 class="mb-0 fw-bold"><i class="bi bi-person-plus me-2"></i>Ajouter un client</h3>
         </div>
-        <div class="card-body">
-            <?php echo $message; ?>
+    <?php endif; ?>
 
-            <form action="" method="POST">
+    <?php if (!empty($error)): ?>
+        <div class="alert alert-danger" role="alert">
+            <?= htmlspecialchars($error); ?>
+        </div>
+    <?php endif; ?>
+
+    <div class="card shadow-sm border-0">
+        <div class="card-body p-4">
+            <form action="add_client.php" method="POST">
                 <div class="row">
                     <div class="col-md-6 mb-3">
-                        <label class="form-label fw-bold">Nom</label>
-                        <input type="text" name="nom" class="form-control" placeholder="ex: Dupont">
+                        <label class="form-label fw-semibold">Nom</label>
+                        <input type="text" name="nom" class="form-control" placeholder="ex: Dupont" required>
                     </div>
                     <div class="col-md-6 mb-3">
-                        <label class="form-label fw-bold">Prénom</label>
+                        <label class="form-label fw-semibold">Prénom</label>
                         <input type="text" name="prenom" class="form-control" placeholder="ex: Jean">
                     </div>
                 </div>
 
                 <div class="mb-3">
-                    <label class="form-label fw-bold">Adresse</label>
+                    <label class="form-label fw-semibold">Adresse</label>
                     <input type="text" name="adresse" class="form-control" placeholder="ex: 15 Avenue France, 75001 Paris">
                 </div>
 
                 <div class="mb-3">
-                    <label class="form-label fw-bold">Adresse complémentaire</label>
+                    <label class="form-label fw-semibold">Adresse complémentaire</label>
                     <textarea name="adresse_2" class="form-control" rows="2" placeholder="Bâtiment, appartement, étage..."></textarea>
                 </div>
 
                 <div class="row">
                     <div class="col-md-6 mb-3">
-                        <label class="form-label fw-bold">Téléphone</label>
-                        <input type="text" id="telephone" name="telephone" class="form-control" placeholder="+33 6 37 00 26 25">
+                        <label class="form-label fw-semibold">Téléphone</label>
+                        <input type="text" name="telephone" id="telephoneInput" class="form-control" placeholder="+33 6 37 00 26 25" value="+33 " maxlength="17" autocomplete="off">
                     </div>
                     <div class="col-md-6 mb-3">
-                        <label class="form-label fw-bold">Email</label>
+                        <label class="form-label fw-semibold">Email</label>
                         <input type="email" name="email" class="form-control" placeholder="client@email.com">
                     </div>
                 </div>
 
                 <div class="mb-3 form-check">
-                    <input type="checkbox" name="societe" id="societe" class="form-check-input" value="1">
-                    <label class="form-check-label fw-bold" for="societe">Entreprise / Société</label>
+                    <input type="checkbox" name="societe" value="1" class="form-check-input" id="societeCheck">
+                    <label class="form-check-label fw-semibold" for="societeCheck">Entreprise / Société</label>
                 </div>
 
                 <div class="mb-3">
-                    <label class="form-label fw-bold">Notes</label>
+                    <label class="form-label fw-semibold">Notes</label>
                     <textarea name="notes" class="form-control" rows="3" placeholder="Code d'accès, particularités..."></textarea>
                 </div>
 
-                <div class="d-grid gap-2 mt-4">
-                    <button type="submit" class="btn btn-success btn-lg">
+                <div class="d-grid mt-4">
+                    <button type="submit" class="btn btn-success py-2 fw-semibold">
                         <i class="bi bi-check-circle me-1"></i> Enregistrer le client
                     </button>
                 </div>
@@ -122,31 +123,52 @@ require_once 'header.php';
     </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const phoneInput = document.getElementById('telephone');
-        if (phoneInput) {
-            phoneInput.addEventListener('input', function(e) {
-                let x = e.target.value.replace(/\D/g, '').match(/(\d{0,2})(\d{0,1})(\d{0,2})(\d{0,2})(\d{0,2})(\d{0,2})/);
+    const phoneInput = document.getElementById('telephoneInput');
+    if (phoneInput) {
+        phoneInput.addEventListener('focus', function() {
+            if (!this.value.startsWith('+33')) {
+                this.value = '+33 ' + this.value;
+            }
+        });
 
-                if (!x) return;
+        // Автоматическая расстановка пробелов формата +33 X XX XX XX XX
+        phoneInput.addEventListener('input', function(e) {
+            let digits = this.value.replace(/\D/g, ''); // Оставляем только цифры
+            if (digits.startsWith('33')) {
+                digits = digits.slice(2); // Убираем префикс 33 для удобства форматирования остатка
+            }
+            digits = digits.slice(0, 9); // Максимум 9 цифр после +33
 
-                let formatted = '+33';
-                if (x[2]) formatted += ' ' + x[2];
-                if (x[3]) formatted += ' ' + x[3];
-                if (x[4]) formatted += ' ' + x[4];
-                if (x[5]) formatted += ' ' + x[5];
-                if (x[6]) formatted += ' ' + x[6];
+            let formatted = '+33';
+            if (digits.length > 0) {
+                formatted += ' ' + digits.substring(0, 1);
+            }
+            if (digits.length > 1) {
+                formatted += ' ' + digits.substring(1, 3);
+            }
+            if (digits.length > 3) {
+                formatted += ' ' + digits.substring(3, 5);
+            }
+            if (digits.length > 5) {
+                formatted += ' ' + digits.substring(5, 7);
+            }
+            if (digits.length > 7) {
+                formatted += ' ' + digits.substring(7, 9);
+            }
+            this.value = formatted;
+        });
 
-                if (e.target.value.trim() === '' || e.target.value === '+') {
-                    e.target.value = '';
-                } else {
-                    e.target.value = formatted;
-                }
-            });
-        }
-    });
+        phoneInput.addEventListener('blur', function() {
+            if (this.value.trim() === '+33' || this.value.trim() === '+33 ') {
+                this.value = '';
+            }
+        });
+    }
 </script>
-</body>
-</html>
+
+<?php if (!$is_modal): ?>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    </body>
+    </html>
+<?php endif; ?>

@@ -5,191 +5,192 @@ error_reporting(E_ALL);
 
 require_once 'db.php';
 
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
-
 $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
-$return_order = isset($_GET['return_order']) ? (int)$_GET['return_order'] : 0;
-
-// Формируем URL для возврата обратно
-$back_url = "commandes_list.php";
-if ($return_order > 0) {
-    $back_url .= "#order-" . $return_order;
-} else {
-    $back_url = "clients_list.php" . ($id > 0 ? "#client-" . $id : "");
+if ($id <= 0) {
+    header("Location: clients_list.php");
+    exit;
 }
 
-// 1. Блокируем любые POST-запросы и попытки удаления для пользователей с типом User (ДО хедера!)
-if (isset($_SESSION['type']) && $_SESSION['type'] === 'User') {
-    if ($_SERVER['REQUEST_METHOD'] === 'POST' || isset($_GET['delete_id'])) {
-        header("Location: index.php?error=access_denied");
-        exit;
-    }
-}
-
-$client = null;
 $error = '';
 
-// Если передан ID, получаем данные клиента для редактирования
-if ($id > 0) {
-    $stmt = $pdo->prepare("SELECT * FROM clients WHERE id = :id");
-    $stmt->execute([':id' => $id]);
-    $client = $stmt->fetch();
-}
-
-// Обработка отправки формы (сохранение/обновление) — тоже ДО хедера
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $nom = trim($_POST['nom'] ?? '');
-    $prenom = trim($_POST['prenom'] ?? '');
-    $telephone = trim($_POST['telephone'] ?? '');
-    $email = trim($_POST['email'] ?? '');
-    $adresse = trim($_POST['adresse'] ?? '');
+    $nom       = trim($_POST['nom'] ?? '');
+    $prenom    = trim($_POST['prenom'] ?? '');
+    $adresse   = trim($_POST['adresse'] ?? '');
     $adresse_2 = trim($_POST['adresse_2'] ?? '');
-    $notes = trim($_POST['notes'] ?? '');
+    $telephone = trim($_POST['telephone'] ?? '');
+    $email     = trim($_POST['email'] ?? '');
+    $societe   = isset($_POST['societe']) ? 1 : 0;
+    $notes     = trim($_POST['notes'] ?? '');
 
-    if (!empty($nom)) {
-        if ($id > 0) {
-            // Обновление существующего клиента
-            $stmt = $pdo->prepare("UPDATE clients SET nom = :nom, prenom = :prenom, telephone = :telephone, email = :email, adresse = :adresse, adresse_2 = :adresse_2, notes = :notes WHERE id = :id");
-            $stmt->execute([
-                    ':nom' => $nom,
-                    ':prenom' => $prenom,
-                    ':telephone' => $telephone,
-                    ':email' => $email,
-                    ':adresse' => $adresse,
-                    ':adresse_2' => $adresse_2,
-                    ':notes' => $notes,
-                    ':id' => $id
-            ]);
-            $redirect_url = "clients_list.php#client-" . $id;
-        } else {
-            // Создание нового клиента
-            $stmt = $pdo->prepare("INSERT INTO clients (nom, prenom, telephone, email, adresse, adresse_2, notes) VALUES (:nom, :prenom, :telephone, :email, :adresse, :adresse_2, :notes)");
-            $stmt->execute([
-                    ':nom' => $nom,
-                    ':prenom' => $prenom,
-                    ':telephone' => $telephone,
-                    ':email' => $email,
-                    ':adresse' => $adresse,
-                    ':adresse_2' => $adresse_2,
-                    ':notes' => $notes
-            ]);
-            $new_client_id = $pdo->lastInsertId();
-            $redirect_url = "clients_list.php#client-" . $new_client_id;
-        }
-
-        if ($return_order > 0) {
-            $redirect_url = $back_url;
-        }
-
-        header("Location: " . $redirect_url);
-        exit;
+    if (empty($nom)) {
+        $error = "Le champ Nom est obligatoire.";
     } else {
-        $error = "Le champ « Nom / Raison sociale » est obligatoire.";
+        try {
+            $stmt = $pdo->prepare("
+                UPDATE clients SET 
+                    nom = :nom, 
+                    prenom = :prenom, 
+                    adresse = :adresse, 
+                    adresse_2 = :adresse_2, 
+                    telephone = :telephone, 
+                    email = :email, 
+                    societe = :societe, 
+                    notes = :notes 
+                WHERE id = :id
+            ");
+            $stmt->execute([
+                ':nom'       => $nom,
+                ':prenom'    => $prenom,
+                ':adresse'   => $adresse,
+                ':adresse_2' => $adresse_2,
+                ':telephone' => $telephone,
+                ':email'     => $email,
+                ':societe'   => $societe,
+                ':notes'     => $notes,
+                ':id'        => $id
+            ]);
+
+            header("Location: clients_list.php?updated=1#client-" . $id);
+            exit;
+        } catch (PDOException $e) {
+            $error = "Erreur de base de données : " . $e->getMessage();
+        }
     }
 }
 
-// 2. Теперь подключаем хедер, когда все возможные редиректы уже выполнены
-require_once 'header.php';
+$stmt = $pdo->prepare("SELECT * FROM clients WHERE id = :id");
+$stmt->execute([':id' => $id]);
+$client = $stmt->fetch();
+
+if (!$client) {
+    header("Location: clients_list.php");
+    exit;
+}
+
+$is_modal = isset($_GET['modal']);
+if (!$is_modal) {
+    require_once 'header.php';
+}
 ?>
 
-<title><?= $id > 0 ? 'Modifier le client' : 'Ajouter un client'; ?> — NumériqueAide</title>
+<title>Modifier le client — NumériqueAide</title>
 
-<style>
-    body {
-        background-color: #d3d1d1 !important;
-    }
-    .card-custom-bg {
-        background-color: #ffffff;
-        border-top: 4px solid #82e89e;
-    }
-</style>
-
-<div class="container mt-4 mb-5" style="max-width: 600px;">
-    <div class="d-flex align-items-center mb-4">
-        <a href="<?= $back_url; ?>" class="btn btn-outline-secondary btn-sm me-3"><i class="bi bi-arrow-left"></i> Retour</a>
-        <h3 class="mb-0 fw-bold"><i class="bi bi-person-badge me-2"></i><?= $id > 0 ? 'Modifier le client' : 'Ajouter un client'; ?></h3>
-    </div>
-
-    <?php if (isset($_SESSION['type']) && $_SESSION['type'] === 'User'): ?>
-        <div class="alert alert-danger">
-            <i class="bi bi-exclamation-triangle-fill me-1"></i> Accès refusé : les utilisateurs avec le profil "User" ne peuvent pas modifier ou ajouter des données.
+<div class="container mt-4 mb-5" style="max-width: 650px;">
+    <?php if (!$is_modal): ?>
+        <div class="d-flex align-items-center mb-4">
+            <a href="clients_list.php" class="btn btn-outline-secondary btn-sm me-3"><i class="bi bi-arrow-left"></i> Retour</a>
+            <h3 class="mb-0 fw-bold"><i class="bi bi-person-gear me-2"></i>Modifier le client</h3>
         </div>
     <?php endif; ?>
 
     <?php if (!empty($error)): ?>
-        <div class="alert alert-danger"><?= htmlspecialchars($error); ?></div>
+        <div class="alert alert-danger" role="alert">
+            <?= htmlspecialchars($error); ?>
+        </div>
     <?php endif; ?>
 
-    <div class="card shadow card-custom-bg border-0">
+    <div class="card shadow-sm border-0">
         <div class="card-body p-4">
-            <form method="POST">
-                <div class="mb-3">
-                    <label class="form-label fw-semibold">Nom / Raison sociale <span class="text-danger">*</span></label>
-                    <input type="text" name="nom" class="form-control" required value="<?= htmlspecialchars($client['nom'] ?? ''); ?>" <?= (isset($_SESSION['type']) && $_SESSION['type'] === 'User') ? 'disabled' : ''; ?>>
-                </div>
-                <div class="mb-3">
-                    <label class="form-label fw-semibold">Prénom</label>
-                    <input type="text" name="prenom" class="form-control" value="<?= htmlspecialchars($client['prenom'] ?? ''); ?>" <?= (isset($_SESSION['type']) && $_SESSION['type'] === 'User') ? 'disabled' : ''; ?>>
-                </div>
-                <div class="mb-3">
-                    <label class="form-label fw-semibold">Téléphone</label>
-                    <input type="text" id="telephone" name="telephone" class="form-control" placeholder="+33 6 37 00 26 25" value="<?= htmlspecialchars($client['telephone'] ?? ''); ?>" <?= (isset($_SESSION['type']) && $_SESSION['type'] === 'User') ? 'disabled' : ''; ?>>
-                </div>
-                <div class="mb-3">
-                    <label class="form-label fw-semibold">Email</label>
-                    <input type="email" name="email" class="form-control" value="<?= htmlspecialchars($client['email'] ?? ''); ?>" <?= (isset($_SESSION['type']) && $_SESSION['type'] === 'User') ? 'disabled' : ''; ?>>
-                </div>
-                <div class="mb-3">
-                    <label class="form-label fw-semibold">Adresse</label>
-                    <textarea name="adresse" class="form-control" rows="2" <?= (isset($_SESSION['type']) && $_SESSION['type'] === 'User') ? 'disabled' : ''; ?>><?= htmlspecialchars($client['adresse'] ?? ''); ?></textarea>
-                </div>
-                <div class="mb-3">
-                    <label class="form-label fw-semibold">Adresse complémentaire</label>
-                    <textarea name="adresse_2" class="form-control" rows="2" <?= (isset($_SESSION['type']) && $_SESSION['type'] === 'User') ? 'disabled' : ''; ?>><?= htmlspecialchars($client['adresse_2'] ?? ''); ?></textarea>
-                </div>
-                <div class="mb-3">
-                    <label class="form-label fw-semibold">Notes</label>
-                    <textarea name="notes" class="form-control" rows="3" <?= (isset($_SESSION['type']) && $_SESSION['type'] === 'User') ? 'disabled' : ''; ?>><?= htmlspecialchars($client['notes'] ?? ''); ?></textarea>
+            <form action="edit_client.php?id=<?= $id; ?>" method="POST">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label fw-semibold">Nom</label>
+                        <input type="text" name="nom" class="form-control" value="<?= htmlspecialchars($client['nom']); ?>" placeholder="ex: Dupont" required>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label fw-semibold">Prénom</label>
+                        <input type="text" name="prenom" class="form-control" value="<?= htmlspecialchars($client['prenom'] ?? ''); ?>" placeholder="ex: Jean">
+                    </div>
                 </div>
 
-                <div class="d-flex justify-content-end gap-2">
-                    <a href="<?= $back_url; ?>" class="btn btn-secondary">Retour</a>
-                    <?php if (!isset($_SESSION['type']) || $_SESSION['type'] !== 'User'): ?>
-                        <button type="submit" class="btn btn-success"><i class="bi bi-save me-1"></i> Enregistrer</button>
-                    <?php endif; ?>
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Adresse</label>
+                    <input type="text" name="adresse" class="form-control" value="<?= htmlspecialchars($client['adresse'] ?? ''); ?>" placeholder="ex: 15 Avenue France, 75001 Paris">
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Adresse complémentaire</label>
+                    <textarea name="adresse_2" class="form-control" rows="2" placeholder="Bâtiment, appartement, étage..."><?= htmlspecialchars($client['adresse_2'] ?? ''); ?></textarea>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label fw-semibold">Téléphone</label>
+                        <input type="text" name="telephone" id="telephoneInput" class="form-control" value="<?= htmlspecialchars($client['telephone'] ?? '+33 '); ?>" placeholder="+33 6 37 00 26 25" maxlength="17" autocomplete="off">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label fw-semibold">Email</label>
+                        <input type="email" name="email" class="form-control" value="<?= htmlspecialchars($client['email'] ?? ''); ?>" placeholder="client@email.com">
+                    </div>
+                </div>
+
+                <div class="mb-3 form-check">
+                    <input type="checkbox" name="societe" value="1" class="form-check-input" id="societeCheck" <?= !empty($client['societe']) ? 'checked' : ''; ?>>
+                    <label class="form-check-label fw-semibold" for="societeCheck">Entreprise / Société</label>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Notes</label>
+                    <textarea name="notes" class="form-control" rows="3" placeholder="Code d'accès, particularités..."><?= htmlspecialchars($client['notes'] ?? ''); ?></textarea>
+                </div>
+
+                <div class="d-grid mt-4">
+                    <button type="submit" class="btn btn-primary py-2 fw-semibold">
+                        <i class="bi bi-save me-1"></i> Enregistrer les modifications
+                    </button>
                 </div>
             </form>
         </div>
     </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const phoneInput = document.getElementById('telephone');
-        if (phoneInput && !phoneInput.disabled) {
-            phoneInput.addEventListener('input', function(e) {
-                let x = e.target.value.replace(/\D/g, '').match(/(\d{0,2})(\d{0,1})(\d{0,2})(\d{0,2})(\d{0,2})(\d{0,2})/);
+    const phoneInput = document.getElementById('telephoneInput');
+    if (phoneInput) {
+        phoneInput.addEventListener('focus', function() {
+            if (!this.value.startsWith('+33')) {
+                this.value = '+33 ' + this.value;
+            }
+        });
 
-                if (!x) return;
+        // Автоматическая расстановка пробелов формата +33 X XX XX XX XX
+        phoneInput.addEventListener('input', function(e) {
+            let digits = this.value.replace(/\D/g, '');
+            if (digits.startsWith('33')) {
+                digits = digits.slice(2);
+            }
+            digits = digits.slice(0, 9);
 
-                let formatted = '+33';
-                if (x[2]) formatted += ' ' + x[2];
-                if (x[3]) formatted += ' ' + x[3];
-                if (x[4]) formatted += ' ' + x[4];
-                if (x[5]) formatted += ' ' + x[5];
-                if (x[6]) formatted += ' ' + x[6];
+            let formatted = '+33';
+            if (digits.length > 0) {
+                formatted += ' ' + digits.substring(0, 1);
+            }
+            if (digits.length > 1) {
+                formatted += ' ' + digits.substring(1, 3);
+            }
+            if (digits.length > 3) {
+                formatted += ' ' + digits.substring(3, 5);
+            }
+            if (digits.length > 5) {
+                formatted += ' ' + digits.substring(5, 7);
+            }
+            if (digits.length > 7) {
+                formatted += ' ' + digits.substring(7, 9);
+            }
+            this.value = formatted;
+        });
 
-                if (e.target.value.trim() === '' || e.target.value === '+') {
-                    e.target.value = '';
-                } else {
-                    e.target.value = formatted;
-                }
-            });
-        }
-    });
+        phoneInput.addEventListener('blur', function() {
+            if (this.value.trim() === '+33' || this.value.trim() === '+33 ') {
+                this.value = '';
+            }
+        });
+    }
 </script>
-</body>
-</html>
+
+<?php if (!$is_modal): ?>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    </body>
+    </html>
+<?php endif; ?>
