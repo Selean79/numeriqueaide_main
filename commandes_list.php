@@ -196,7 +196,9 @@ if (
                     ':epargne_paye'       => 0
                 ]);
 
-                header("Location: commandes_list.php?copied=1");
+                $new_order_id = $pdo->lastInsertId();
+
+                header("Location: commandes_list.php?copied=1#order-" . $new_order_id);
                 exit;
             }
 
@@ -458,12 +460,10 @@ require_once 'header.php';
     .order-group-even { background-color: #f8f9fb !important; }
     .order-group-odd { background-color: #ffffff !important; }
     
-    /* Принудительная покраска всей строки для статусов */
     tr.row-status-en-cours, tr.row-status-en-cours > td { background-color: #fffad6 !important; }
     tr.row-status-annulee, tr.row-status-annulee > td { background-color: #fee3e3 !important; }
     tr.row-status-paye, tr.row-status-paye > td { background-color: #e1e7eb !important; }
 
-    /* Обычная зеленая шапка таблицы (без липкости, чтобы не перекрывать строки) */
     .table-header-custom th, .table-header-custom td { 
         background-color: #82e89e !important; 
         color: #020202 !important; 
@@ -473,18 +473,15 @@ require_once 'header.php';
     .totals-badge { background-color: #000000 !important; color: #ffffff !important; font-weight: bold !important; white-space: nowrap !important; padding: 2px 8px; border-radius: 4px; display: inline-block; }
     .rdv-time-badge { background-color: #e2e8f0; color: #1e293b; padding: 2px 6px; border-radius: 4px; font-weight: 600; display: inline-block; }
     
-    /* Кнопки Copy / Supprimer аккуратно прилипают под верхним меню сайта */
-    /* Кнопки прилипают под меню без сплошного фона */
     #bulkActionButtons { 
         position: sticky; 
         top: 55px; 
         z-index: 1050; 
-        background-color: transparent; /* Убрали серый фон */
+        background-color: transparent; 
         padding: 8px 0;
         margin-bottom: 10px;
     }
     
-    /* Скрываем колонку действий по умолчанию */
     .actions-column { display: none; }
     
     tr.row-selected, tr.row-selected > td { background-color: #eef7ff !important; }
@@ -495,9 +492,9 @@ require_once 'header.php';
 <div class="container-fluid mt-4 px-4">
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h3 class="mb-0"><i class="bi bi-cart-check me-2"></i>Liste des commandes</h3>
-        <a href="add_commande.php" class="btn btn-success">
+        <button type="button" class="btn btn-success" onclick="openCommandeModal('add_commande.php?modal=1', 'Créer une commande', 'bg-success')">
             <i class="bi bi-plus-circle me-1"></i>Créer une commande
-        </a>
+        </button>
     </div>
 
     <?php if (isset($_GET['deleted'])): ?>
@@ -634,7 +631,7 @@ require_once 'header.php';
                                 $rowIndex++;
                                 $montant = (float)($order['montant'] ?? 0);
                                 $impotVal = (float)($order['calcul_impot'] ?? 0);
-                                $impotAmount = ($impotVal == 1) ? ($montant * 0.212) : $impotVal;
+                                $impotAmount = ($impVal == 1) ? ($montant * 0.212) : $impVal;
                                 $epargneVal = (float)($order['calcul_epargne'] ?? 0);
                                 $epargneAmount = ($epargneVal == 1) ? ($montant * 0.10) : $epargneVal;
                                 $platformName = trim($order['platform_name'] ?? 'Privé');
@@ -696,9 +693,9 @@ require_once 'header.php';
                                         <input type="checkbox" name="delete_ids[]" value="<?= (int)$order['id']; ?>" class="form-check-input order-checkbox" aria-label="Sélectionner la commande">
                                     </td>
                                     <td class="text-center text-nowrap actions-column">
-                                        <a href="edit_commande.php?id=<?= (int)$order['id']; ?>&return=<?= urlencode(basename($_SERVER['PHP_SELF']) . '?' . $_SERVER['QUERY_STRING']); ?>" class="btn btn-sm btn-outline-primary me-1" title="Редактировать">
+                                        <button type="button" class="btn btn-sm btn-outline-primary me-1" onclick="openCommandeModal('edit_commande.php?id=<?= (int)$order['id']; ?>&modal=1', 'Modifier la commande', 'bg-primary')" title="Редактировать">
                                             <i class="bi bi-pencil"></i>
-                                        </a>
+                                        </button>
                                         <a href="commandes_list.php?delete_id=<?= (int)$order['id']; ?>" class="btn btn-sm btn-outline-danger" onclick="return confirm('Êtes-vous sûr de vouloir supprimer cette commande?');" title="Удалить">
                                             <i class="bi bi-trash"></i>
                                         </a>
@@ -836,9 +833,29 @@ require_once 'header.php';
     </form>
 </div>
 
+<!-- Модальное окно для создания/редактирования заказа -->
+<div class="modal fade" id="commandeModal" tabindex="-1" aria-labelledby="commandeModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white" id="cmdModalHeader">
+                <h5 class="modal-title" id="commandeModalLabel">
+                    <i class="bi bi-cart-plus me-1"></i> <span id="cmdModalTitleText">Créer une commande</span>
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="cmdModalBody">
+                <div class="text-center py-4">
+                    <div class="spinner-border text-success" role="status">
+                        <span class="visually-hidden">Chargement...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
-<!-- Зеленые кнопки прокрутки вниз и наверх -->
 <button type="button" class="btn btn-success btn-lg rounded-circle shadow" id="btn-back-to-bottom" style="position: fixed; bottom: 80px; right: 20px; display: none; z-index: 9999;" title="Прокрутить вниз">
     <i class="bi bi-arrow-down"></i>
 </button>
@@ -848,6 +865,60 @@ require_once 'header.php';
 </button>
 
 <script>
+    const commandeModal = new bootstrap.Modal(document.getElementById('commandeModal'));
+
+    function openCommandeModal(url, title, headerClass) {
+        document.getElementById('cmdModalTitleText').innerText = title;
+        document.getElementById('cmdModalHeader').className = 'modal-header ' + headerClass + ' text-white';
+        
+        document.getElementById('cmdModalBody').innerHTML = `
+            <div class="text-center py-4">
+                <div class="spinner-border text-success" role="status">
+                    <span class="visually-hidden">Chargement...</span>
+                </div>
+            </div>
+        `;
+        
+        commandeModal.show();
+
+        fetch(url)
+            .then(response => response.text())
+            .then(html => {
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(html, 'text/html');
+                const content = doc.querySelector('.container, .container-fluid, form') || doc.body;
+                
+                document.getElementById('cmdModalBody').innerHTML = content.outerHTML;
+                
+                // Перехватываем отправку формы внутри модалки через AJAX
+                const modalForm = document.getElementById('cmdModalBody').querySelector('form');
+                if (modalForm) {
+                    modalForm.addEventListener('submit', function(e) {
+                        e.preventDefault();
+                        const formData = new FormData(modalForm);
+                        
+                        fetch(modalForm.action || url, {
+                            method: 'POST',
+                            body: formData
+                        })
+                        .then(res => {
+                            if (res.redirected) {
+                                window.location.href = res.url;
+                            } else {
+                                window.location.reload();
+                            }
+                        })
+                        .catch(err => {
+                            alert('Erreur lors de l\'enregistrement');
+                        });
+                    });
+                }
+            })
+            .catch(error => {
+                document.getElementById('cmdModalBody').innerHTML = '<div class="alert alert-danger">Erreur de chargement du formulaire.</div>';
+            });
+    }
+
     document.addEventListener("DOMContentLoaded", function () {
         if (window.location.hash) {
             const targetElement = document.querySelector(window.location.hash);
