@@ -6,21 +6,19 @@ error_reporting(E_ALL);
 // Подключаем базу данных
 require_once 'db.php';
 
-// Сброс фильтра поиска
+// Сброс фильтра перенесен ДО подключения хедера, чтобы headers не успели уйти
 if (isset($_GET['clear_filter'])) {
     header("Location: clients_list.php");
     exit;
 }
 
-require_once 'header.php'; // Подключаем хедер первым, чтобы сессия точно работала
+require_once 'header.php'; // Подключаем хедер после проверки редиректа
 
 // 1. Защита: если пользователь тип User, блокируем попытку удаления через URL
 if (isset($_SESSION['type']) && $_SESSION['type'] === 'User' && isset($_GET['delete_id'])) {
     header("Location: clients_list.php");
     exit;
 }
-
-
 
 // 2. Обрабатываем удаление клиента (доступно только для Admin и PowerUser)
 if (isset($_GET['delete_id'])) {
@@ -142,6 +140,13 @@ function sortLink($column, $label, $current_sort, $current_order, $search) {
         </div>
     <?php endif; ?>
 
+    <?php if (isset($_GET['added'])): ?>
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            Le client a été ajouté avec succès !
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    <?php endif; ?>
+
     <?php if (isset($error_message)): ?>
         <div class="alert alert-danger alert-dismissible fade show" role="alert">
             <?= htmlspecialchars($error_message); ?>
@@ -198,7 +203,7 @@ function sortLink($column, $label, $current_sort, $current_order, $search) {
                         </tr>
                     <?php else: ?>
                         <?php foreach ($clients as $client): ?>
-                            <tr>
+                            <tr id="client-<?= (int)$client['id']; ?>">
                                 <td class="text-center fw-bold text-secondary"><?= $client['id']; ?></td>
 
                                 <td class="fw-bold">
@@ -268,6 +273,19 @@ function sortLink($column, $label, $current_sort, $current_order, $search) {
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
+    document.addEventListener("DOMContentLoaded", function () {
+        if (window.location.hash) {
+            const targetElement = document.querySelector(window.location.hash);
+            if (targetElement) {
+                targetElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                targetElement.classList.add('table-active');
+                setTimeout(() => {
+                    targetElement.classList.remove('table-active');
+                }, 2000);
+            }
+        }
+    });
+
     setTimeout(function () {
         const alerts = document.querySelectorAll('.alert');
         alerts.forEach(function (alertElement) {

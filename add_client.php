@@ -26,31 +26,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 INSERT INTO clients (nom, prenom, adresse, adresse_2, telephone, email, notes, societe)
                 VALUES (:nom, :prenom, :adresse, :adresse_2, :telephone, :email, :notes, :societe)
             ");
+            
+            if ($stmt === false) {
+                throw new Exception("Erreur de préparation de la requête SQL.");
+            }
+
             $stmt->execute([
-                    ':nom'       => $nom,
-                    ':prenom'    => $prenom,
-                    ':adresse'   => $adresse,
-                    ':adresse_2' => $adresse_2,
-                    ':telephone' => $telephone,
-                    ':email'     => $email,
-                    ':notes'     => $notes,
-                    ':societe'   => $societe
+                ':nom'       => $nom,
+                ':prenom'    => $prenom,
+                ':adresse'   => $adresse,
+                ':adresse_2' => $adresse_2,
+                ':telephone' => $telephone,
+                ':email'     => $email,
+                ':notes'     => $notes,
+                ':societe'   => $societe
             ]);
 
-            header("Location: add_client.php?success=1");
+            // Получаем ID только что созданного клиента
+            $new_client_id = $pdo->lastInsertId();
+
+            // Перенаправляем на список клиентов к конкретной строке через якорь
+            header("Location: clients_list.php?added=1#client-" . $new_client_id);
             exit;
-        } catch (PDOException $e) {
+        } catch (Exception $e) {
             $message = '<div class="alert alert-danger">Erreur d\'enregistrement : ' . htmlspecialchars($e->getMessage()) . '</div>';
         }
     }
-}
-
-// Показываем сообщение об успехе после редиректа
-if (isset($_GET['success'])) {
-    $message = '<div class="alert alert-success alert-dismissible fade show" role="alert">
-                    <i class="bi bi-check-circle me-1"></i> <strong>Client ajouté avec succès !</strong> Le formulaire a été réinitialisé.
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                </div>';
 }
 
 // 2. Только теперь подключаем хедер с вашим неизменным дизайном
@@ -123,7 +124,6 @@ require_once 'header.php';
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-    // Автоматическое форматирование ввода телефона в формат +33 X XX XX XX XX
     document.addEventListener('DOMContentLoaded', function() {
         const phoneInput = document.getElementById('telephone');
         if (phoneInput) {
