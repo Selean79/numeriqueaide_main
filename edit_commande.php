@@ -25,6 +25,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $date_paiement      = !empty($_POST['date_paiement']) ? $_POST['date_paiement'] : null;
     $notes              = trim($_POST['notes'] ?? '');
     $commentaire        = trim($_POST['commentaire'] ?? '');
+    
+    // Возвращенные поля налогов и накоплений
     $calcul_impot       = isset($_POST['calcul_impot']) ? $_POST['calcul_impot'] : 0;
     $calcul_epargne     = isset($_POST['calcul_epargne']) ? $_POST['calcul_epargne'] : 0;
     $impot_paye         = isset($_POST['impot_paye']) ? 1 : 0;
@@ -73,7 +75,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 ':id'                => $id
             ]);
 
-            // Перенаправление на список с якорем на измененную строку
             header("Location: commandes_list.php?updated=1#order-" . $id);
             exit;
 
@@ -83,7 +84,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-// Загрузка заказа
 $stmt = $pdo->prepare("SELECT * FROM commandes WHERE id = :id");
 $stmt->execute([':id' => $id]);
 $order = $stmt->fetch();
@@ -179,6 +179,40 @@ if (!$is_modal) {
                             <option value="Payé" <?= ($order['statut'] === 'Payé') ? 'selected' : ''; ?>>Payé</option>
                             <option value="Annulée" <?= ($order['statut'] === 'Annulée') ? 'selected' : ''; ?>>Annulée</option>
                         </select>
+                    </div>
+                </div>
+
+                <!-- Блок налогов и накоплений с текущими значениями -->
+                <div class="card bg-light p-3 mb-3 border-0">
+                    <div class="row">
+                        <div class="col-md-6 mb-2">
+                            <label class="form-label fw-semibold small">Calcul Taxe (Impôt 21.2%)</label>
+                            <select name="calcul_impot" class="form-select form-select-sm">
+                                <option value="1" <?= ($order['calcul_impot'] == 1) ? 'selected' : ''; ?>>Oui (21.2%)</option>
+                                <option value="0" <?= ($order['calcul_impot'] == 0) ? 'selected' : ''; ?>>Non</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-2">
+                            <label class="form-label fw-semibold small">Calcul Cumul (Épargne 10%)</label>
+                            <select name="calcul_epargne" class="form-select form-select-sm">
+                                <option value="1" <?= ($order['calcul_epargne'] == 1) ? 'selected' : ''; ?>>Oui (10%)</option>
+                                <option value="0" <?= ($order['calcul_epargne'] == 0) ? 'selected' : ''; ?>>Non</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row mt-1">
+                        <div class="col-md-6">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="impot_paye" value="1" id="impotPayeCheck" <?= !empty($order['impot_paye']) ? 'checked' : ''; ?>>
+                                <label class="form-check-label small" for="impotPayeCheck">Taxe payée</label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="epargne_paye" value="1" id="epargnePayeCheck" <?= !empty($order['epargne_paye']) ? 'checked' : ''; ?>>
+                                <label class="form-check-label small" for="epargnePayeCheck">Cumul transféré</label>
+                            </div>
+                        </div>
                     </div>
                 </div>
 

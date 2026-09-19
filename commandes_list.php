@@ -631,7 +631,7 @@ require_once 'header.php';
                                 $rowIndex++;
                                 $montant = (float)($order['montant'] ?? 0);
                                 $impotVal = (float)($order['calcul_impot'] ?? 0);
-                                $impotAmount = ($impVal == 1) ? ($montant * 0.212) : $impVal;
+                                $impotAmount = ($impotVal == 1) ? ($montant * 0.212) : $impotVal;
                                 $epargneVal = (float)($order['calcul_epargne'] ?? 0);
                                 $epargneAmount = ($epargneVal == 1) ? ($montant * 0.10) : $epargneVal;
                                 $platformName = trim($order['platform_name'] ?? 'Privé');
@@ -752,7 +752,7 @@ require_once 'header.php';
                                                     <i class="bi bi-check-all me-1"></i><?= number_format($impotAmount, 2, ',', ' '); ?> €
                                                 </span>
                                             <?php else: ?>
-                                                <span class="text-primary fw-semibold">
+                                                <span class="text-primary fw-semibold" title="Налог не оплачен">
                                                     <i class="bi bi-clock me-1"></i><?= number_format($impotAmount, 2, ',', ' '); ?> €
                                                 </span>
                                             <?php endif; ?>
@@ -767,7 +767,7 @@ require_once 'header.php';
                                                     <i class="bi bi-check-all me-1"></i><?= number_format($epargneAmount, 2, ',', ' '); ?> €
                                                 </span>
                                             <?php else: ?>
-                                                <span class="text-primary fw-semibold">
+                                                <span class="text-primary fw-semibold" title="Накопления не переведены">
                                                     <i class="bi bi-clock me-1"></i><?= number_format($epargneAmount, 2, ',', ' '); ?> €
                                                 </span>
                                             <?php endif; ?>
@@ -890,7 +890,6 @@ require_once 'header.php';
                 
                 document.getElementById('cmdModalBody').innerHTML = content.outerHTML;
                 
-                // Перехватываем отправку формы внутри модалки через AJAX
                 const modalForm = document.getElementById('cmdModalBody').querySelector('form');
                 if (modalForm) {
                     modalForm.addEventListener('submit', function(e) {

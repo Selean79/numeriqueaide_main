@@ -19,6 +19,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $date_paiement      = !empty($_POST['date_paiement']) ? $_POST['date_paiement'] : null;
     $notes              = trim($_POST['notes'] ?? '');
     $commentaire        = trim($_POST['commentaire'] ?? '');
+    
+    // Возвращенные поля налогов и накоплений
     $calcul_impot       = isset($_POST['calcul_impot']) ? $_POST['calcul_impot'] : 0;
     $calcul_epargne     = isset($_POST['calcul_epargne']) ? $_POST['calcul_epargne'] : 0;
     $impot_paye         = isset($_POST['impot_paye']) ? 1 : 0;
@@ -28,7 +30,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $message = '<div class="alert alert-danger">Veuillez renseigner le client et le montant !</div>';
     } else {
         try {
-            // Генерация номера заказа (CMD-YYYY-X)
             $current_year = date('Y', strtotime($date_commande));
             $next_order_id = 'CMD-' . $current_year . '-1';
 
@@ -83,7 +84,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             $new_id = $pdo->lastInsertId();
 
-            // Перенаправление на список с якорем на созданную строку
             header("Location: commandes_list.php?added=1#order-" . $new_id);
             exit;
 
@@ -93,12 +93,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-// Загрузка списков для селектов
 $clients = $pdo->query("SELECT id, nom, prenom FROM clients ORDER BY nom ASC")->fetchAll();
 $platforms = $pdo->query("SELECT * FROM platforms")->fetchAll();
 $payment_methods = $pdo->query("SELECT * FROM modes_de_paiement")->fetchAll();
 
-// Если открыто как отдельная страница (не в модалке), подключаем хедер
 $is_modal = isset($_GET['modal']);
 if (!$is_modal) {
     require_once 'header.php';
@@ -175,6 +173,40 @@ if (!$is_modal) {
                             <option value="Payé">Payé</option>
                             <option value="Annulée">Annulée</option>
                         </select>
+                    </div>
+                </div>
+
+                <!-- Блок налогов и накоплений -->
+                <div class="card bg-light p-3 mb-3 border-0">
+                    <div class="row">
+                        <div class="col-md-6 mb-2">
+                            <label class="form-label fw-semibold small">Calcul Taxe (Impôt 21.2%)</label>
+                            <select name="calcul_impot" class="form-select form-select-sm">
+                                <option value="1">Oui (21.2%)</option>
+                                <option value="0">Non</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-2">
+                            <label class="form-label fw-semibold small">Calcul Cumul (Épargne 10%)</label>
+                            <select name="calcul_epargne" class="form-select form-select-sm">
+                                <option value="1">Oui (10%)</option>
+                                <option value="0">Non</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row mt-1">
+                        <div class="col-md-6">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="impot_paye" value="1" id="impotPayeCheck">
+                                <label class="form-check-label small" for="impotPayeCheck">Taxe payée</label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="epargne_paye" value="1" id="epargnePayeCheck">
+                                <label class="form-check-label small" for="epargnePayeCheck">Cumul transféré</label>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
