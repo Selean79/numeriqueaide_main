@@ -4,18 +4,29 @@ ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 
 require_once 'db.php';
-require_once 'header.php'; // Внутри header.php уже запускается session_start()
 
-// Блокируем любые POST-запросы и попытки удаления для пользователей с типом User
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+$id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
+$return_order = isset($_GET['return_order']) ? (int)$_GET['return_order'] : 0;
+
+// Формируем URL для возврата обратно
+$back_url = "commandes_list.php";
+if ($return_order > 0) {
+    $back_url .= "#order-" . $return_order;
+} else {
+    $back_url = "clients_list.php" . ($id > 0 ? "#client-" . $id : "");
+}
+
+// 1. Блокируем любые POST-запросы и попытки удаления для пользователей с типом User (ДО хедера!)
 if (isset($_SESSION['type']) && $_SESSION['type'] === 'User') {
     if ($_SERVER['REQUEST_METHOD'] === 'POST' || isset($_GET['delete_id'])) {
         header("Location: index.php?error=access_denied");
         exit;
     }
 }
-
-$id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
-$return_order = isset($_GET['return_order']) ? (int)$_GET['return_order'] : 0;
 
 $client = null;
 $error = '';
@@ -27,13 +38,7 @@ if ($id > 0) {
     $client = $stmt->fetch();
 }
 
-// Формируем URL для возврата обратно в список заказов на ту же строчку
-$back_url = "commandes_list.php";
-if ($return_order > 0) {
-    $back_url .= "#order-" . $return_order;
-}
-
-// Обработка отправки формы (сохранение/обновление)
+// Обработка отправки формы (сохранение/обновление) — тоже ДО хедера
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $nom = trim($_POST['nom'] ?? '');
     $prenom = trim($_POST['prenom'] ?? '');
@@ -57,6 +62,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     ':notes' => $notes,
                     ':id' => $id
             ]);
+            $redirect_url = "clients_list.php#client-" . $id;
         } else {
             // Создание нового клиента
             $stmt = $pdo->prepare("INSERT INTO clients (nom, prenom, telephone, email, adresse, adresse_2, notes) VALUES (:nom, :prenom, :telephone, :email, :adresse, :adresse_2, :notes)");
@@ -69,14 +75,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     ':adresse_2' => $adresse_2,
                     ':notes' => $notes
             ]);
+            $new_client_id = $pdo->lastInsertId();
+            $redirect_url = "clients_list.php#client-" . $new_client_id;
         }
-        // Безопасный редирект обратно к заказу
-        header("Location: " . $back_url);
+
+        if ($return_order > 0) {
+            $redirect_url = $back_url;
+        }
+
+        header("Location: " . $redirect_url);
         exit;
     } else {
         $error = "Le champ « Nom / Raison sociale » est obligatoire.";
     }
 }
+
+// 2. Теперь подключаем хедер, когда все возможные редиректы уже выполнены
+require_once 'header.php';
 ?>
 
 <title><?= $id > 0 ? 'Modifier le client' : 'Ajouter un client'; ?> — NumériqueAide</title>
@@ -109,7 +124,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     <div class="card shadow card-custom-bg border-0">
         <div class="card-body p-4">
-            <!-- Если User, то выводим поля заблокированными (disabled) либо вообще скрываем форму -->
             <form method="POST">
                 <div class="mb-3">
                     <label class="form-label fw-semibold">Nom / Raison sociale <span class="text-danger">*</span></label>
@@ -153,7 +167,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-    // Автоматическое форматирование ввода телефона в формат +33 X XX XX XX XX
     document.addEventListener('DOMContentLoaded', function() {
         const phoneInput = document.getElementById('telephone');
         if (phoneInput && !phoneInput.disabled) {
