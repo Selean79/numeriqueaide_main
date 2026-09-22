@@ -490,11 +490,9 @@ require_once 'header.php';
 </style>
 
 <div class="container-fluid mt-4 px-4">
+    <!-- Заголовок страницы (кнопку отсюда мы перенесли в прилипающий блок) -->
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h3 class="mb-0"><i class="bi bi-cart-check me-2"></i>Liste des commandes</h3>
-        <button type="button" class="btn btn-success" onclick="openCommandeModal('add_commande.php?modal=1', 'Créer une commande', 'bg-success')">
-            <i class="bi bi-plus-circle me-1"></i>Créer une commande
-        </button>
     </div>
 
     <?php if (isset($_GET['deleted'])): ?>
@@ -588,7 +586,11 @@ require_once 'header.php';
     </div>
 
     <form method="POST" id="bulkActionForm">
+        <!-- Блок прилипающих кнопок. Кнопка создания теперь живет здесь! -->
         <div id="bulkActionButtons" class="d-flex justify-content-end gap-2 mb-2">
+            <button type="button" class="btn btn-success btn-sm shadow-sm" onclick="openCommandeModal('add_commande.php?modal=1', 'Créer une commande', 'bg-success')">
+                <i class="bi bi-plus-circle me-1"></i>Créer une commande
+            </button>
             <button type="submit" name="bulk_copy" id="bulkCopyBtn" class="btn btn-success btn-sm d-none">
                 <i class="bi bi-files me-1"></i>Copy
             </button>
