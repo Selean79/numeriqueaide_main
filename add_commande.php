@@ -8,7 +8,31 @@ require_once 'db.php';
 $message = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $date_commande      = trim($_POST['date_commande'] ?? date('Y-m-d'));
+    // Конвертируем дату заказа из DD/MM/YYYY в YYYY-MM-DD для MySQL
+    $date_commande_raw = trim($_POST['date_commande'] ?? '');
+    if (!empty($date_commande_raw) && strpos($date_commande_raw, '/') !== false) {
+        $parts = explode('/', $date_commande_raw);
+        if (count($parts) === 3) {
+            $date_commande = $parts[2] . '-' . $parts[1] . '-' . $parts[0];
+        } else {
+            $date_commande = date('Y-m-d');
+        }
+    } else {
+        $date_commande = !empty($date_commande_raw) ? $date_commande_raw : date('Y-m-d');
+    }
+
+    // Конвертируем дату оплаты из DD/MM/YYYY в YYYY-MM-DD
+    $date_paiement_raw = trim($_POST['date_paiement'] ?? '');
+    $date_paiement = null;
+    if (!empty($date_paiement_raw) && strpos($date_paiement_raw, '/') !== false) {
+        $parts = explode('/', $date_paiement_raw);
+        if (count($parts) === 3) {
+            $date_paiement = $parts[2] . '-' . $parts[1] . '-' . $parts[0];
+        }
+    } elseif (!empty($date_paiement_raw)) {
+        $date_paiement = $date_paiement_raw;
+    }
+
     $rdv_time           = trim($_POST['rdv_time'] ?? null);
     $client_id          = (int)($_POST['client_id'] ?? 0);
     $platform_id        = (int)($_POST['platform_id'] ?? 0);
@@ -16,8 +40,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $facture_id         = !empty($_POST['facture_id']) ? (int)$_POST['facture_id'] : null;
     $montant            = str_replace(',', '.', trim($_POST['montant'] ?? '0'));
     $statut             = trim($_POST['statut'] ?? 'Prévu');
-    $date_paiement      = !empty($_POST['date_paiement']) ? $_POST['date_paiement'] : null;
-    $notes             = trim($_POST['notes'] ?? '');
+    $notes              = trim($_POST['notes'] ?? '');
     $commentaire        = trim($_POST['commentaire'] ?? '');
     
     $calcul_impot       = isset($_POST['calcul_impot']) ? $_POST['calcul_impot'] : 0;
@@ -104,14 +127,20 @@ if (!$is_modal) {
 
 <title>Créer une commande — NumériqueAide</title>
 
+<!-- Подключаем стили Flatpickr -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+
 <style>
     .card {
         background-color: transparent !important;
         border: none !important;
     }
     .card-body.custom-card-body {
-        background-color: #e9ecef !important; /* Серый фон внутри рамки */
+        background-color: #e9ecef !important;
         border-radius: 0.375rem;
+    }
+    .flatpickr-calendar {
+        z-index: 99999 !important;
     }
 </style>
 
@@ -131,11 +160,11 @@ if (!$is_modal) {
                 <div class="row">
                     <div class="col-md-6 mb-3">
                         <label class="form-label fw-semibold">Date de commande <span class="text-danger">*</span></label>
-                        <input type="date" name="date_commande" class="form-control bg-white" value="<?= date('Y-m-d'); ?>" required>
+                        <input type="text" id="date_commande" name="date_commande" class="form-control bg-white" placeholder="jj/mm/aaaa" value="<?= date('d/m/Y'); ?>" required onclick="initFP(this)" onfocus="initFP(this)">
                     </div>
                     <div class="col-md-6 mb-3">
                         <label class="form-label fw-semibold">Heure RDV</label>
-                        <input type="time" name="rdv_time" class="form-control bg-white">
+                        <input type="text" name="rdv_time" id="rdv_time" class="form-control bg-white" placeholder="--:--" onclick="initTimeFP(this)" onfocus="initTimeFP(this)">
                     </div>
                 </div>
 
@@ -186,7 +215,7 @@ if (!$is_modal) {
                     </div>
                     <div class="col-md-4 mb-3">
                         <label class="form-label fw-semibold">Date de paiement</label>
-                        <input type="date" name="date_paiement" class="form-control bg-white">
+                        <input type="text" id="date_paiement" name="date_paiement" class="form-control bg-white" placeholder="jj/mm/aaaa" onclick="initFP(this)" onfocus="initFP(this)">
                     </div>
                 </div>
 
@@ -246,6 +275,37 @@ if (!$is_modal) {
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/fr.js"></script>
+<script>
+    function initFP(el) {
+        if (typeof flatpickr !== 'undefined' && !el._flatpickr) {
+            flatpickr(el, {
+                dateFormat: "d/m/Y",
+                allowInput: true,
+                locale: "fr"
+            }).open();
+        } else if (el._flatpickr) {
+            el._flatpickr.open();
+        }
+    }
+
+    function initTimeFP(el) {
+        if (typeof flatpickr !== 'undefined' && !el._flatpickr) {
+            flatpickr(el, {
+                enableTime: true,
+                noCalendar: true,
+                dateFormat: "H:i",
+                time_24hr: true,
+                allowInput: true,
+                locale: "fr"
+            }).open();
+        } else if (el._flatpickr) {
+            el._flatpickr.open();
+        }
+    }
+</script>
+
 <?php if (!$is_modal): ?>
     </body>
     </html>

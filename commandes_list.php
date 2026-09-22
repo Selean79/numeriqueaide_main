@@ -490,7 +490,6 @@ require_once 'header.php';
 </style>
 
 <div class="container-fluid mt-4 px-4">
-    <!-- Заголовок страницы (кнопку отсюда мы перенесли в прилипающий блок) -->
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h3 class="mb-0"><i class="bi bi-cart-check me-2"></i>Liste des commandes</h3>
     </div>
@@ -502,6 +501,13 @@ require_once 'header.php';
             <?php else: ?>
                 La commande a été supprimée avec succès!
             <?php endif; ?>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    <?php endif; ?>
+
+    <?php if (isset($_GET['added'])): ?>
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            La commande a été ajoutée avec succès!
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
     <?php endif; ?>
@@ -586,7 +592,6 @@ require_once 'header.php';
     </div>
 
     <form method="POST" id="bulkActionForm">
-        <!-- Блок прилипающих кнопок. Кнопка создания теперь живет здесь! -->
         <div id="bulkActionButtons" class="d-flex justify-content-end gap-2 mb-2">
             <button type="button" class="btn btn-success btn-sm shadow-sm" onclick="openCommandeModal('add_commande.php?modal=1', 'Créer une commande', 'bg-success')">
                 <i class="bi bi-plus-circle me-1"></i>Créer une commande
@@ -920,15 +925,29 @@ require_once 'header.php';
                         e.preventDefault();
                         const formData = new FormData(modalForm);
                         
-                        fetch(modalForm.action || url, {
+                        // Гарантируем, что форма отправляется с параметром modal=1
+                        let targetUrl = modalForm.action || url;
+                        if (!targetUrl.includes('modal=1')) {
+                            targetUrl += (targetUrl.includes('?') ? '&' : '?') + 'modal=1';
+                        }
+                        
+                        fetch(targetUrl, {
                             method: 'POST',
                             body: formData
                         })
-                        .then(res => {
+                        .then(async res => {
                             if (res.redirected) {
                                 window.location.href = res.url;
                             } else {
-                                window.location.reload();
+                                const responseText = await res.text();
+                                // Если сервер вернул форму с сообщениями об ошибках, показываем их
+                                if (responseText.includes('alert-danger')) {
+                                    const tempDoc = new DOMParser().parseFromString(responseText, 'text/html');
+                                    const newContent = tempDoc.querySelector('.container, .container-fluid, form') || tempDoc.body;
+                                    document.getElementById('cmdModalBody').innerHTML = newContent.outerHTML;
+                                } else {
+                                    window.location.reload();
+                                }
                             }
                         })
                         .catch(err => {
