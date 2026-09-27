@@ -54,6 +54,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (empty($rdv_time))        $errors[] = 'Heure RDV';
     if ($platform_id <= 0)       $errors[] = 'Plateforme';
     if ($payment_method_id <= 0) $errors[] = 'Mode de paiement';
+    if ($statut === 'Payé' && empty($date_paiement)) $errors[] = 'Date de paiement';
 
     if (!empty($errors)) {
         $message = '<div class="alert alert-danger">Champs non remplis : <strong>' . implode(', ', $errors) . '</strong></div>';
@@ -252,8 +253,9 @@ if (!$is_modal) {
                         </select>
                     </div>
                     <div class="col-md-4 mb-3">
-                        <label class="form-label fw-semibold">Date de paiement</label>
+                        <label class="form-label fw-semibold">Date de paiement <span class="text-danger d-none" id="datePaiementStar">*</span></label>
                         <input type="text" id="date_paiement" name="date_paiement" class="form-control bg-white js-date" value="<?= $date_paiement_value; ?>" placeholder="jj.mm.aaaa">
+                        <div class="invalid-feedback">Indiquez la date de paiement pour une commande payée.</div>
                     </div>
                 </div>
 
@@ -317,6 +319,18 @@ if (!$is_modal) {
 <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/fr.js"></script>
 <script>
     // Работает, когда форма открыта отдельной страницей (в модальном окне календарь запускает commandes_list.php)
+    // Если статус «Payé» — дата оплаты обязательна
+    function syncPaymentDateRequired(form) {
+        const statut = form.querySelector('[name="statut"]');
+        const dateInput = form.querySelector('[name="date_paiement"]');
+        if (!statut || !dateInput) return;
+        const isPaid = statut.value === 'Payé';
+        const visible = (dateInput._flatpickr && dateInput._flatpickr.altInput) ? dateInput._flatpickr.altInput : dateInput;
+        visible.required = isPaid;
+        const star = form.querySelector('#datePaiementStar');
+        if (star) star.classList.toggle('d-none', !isPaid);
+    }
+
     document.addEventListener('DOMContentLoaded', function () {
         document.querySelectorAll('.js-date').forEach(function (el) {
             flatpickr(el, {
@@ -330,7 +344,13 @@ if (!$is_modal) {
         // Проверка обязательных полей при отдельной странице
         const form = document.querySelector('form[novalidate]');
         if (form) {
+            syncPaymentDateRequired(form);
+            form.querySelector('[name="statut"]').addEventListener('change', function () {
+                syncPaymentDateRequired(form);
+            });
+
             form.addEventListener('submit', function (e) {
+                syncPaymentDateRequired(form);
                 if (!form.checkValidity()) {
                     e.preventDefault();
                     form.classList.add('was-validated');

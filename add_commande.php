@@ -8,57 +8,47 @@ require_once 'db.php';
 $message = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // Конвертируем дату заказа из DD/MM/YYYY в YYYY-MM-DD для MySQL
+    // Даты принимаем как YYYY-MM-DD (календарь), так и DD/MM/YYYY или DD.MM.YYYY
     $date_commande_raw = trim($_POST['date_commande'] ?? '');
-    if (!empty($date_commande_raw) && strpos($date_commande_raw, '/') !== false) {
-        $parts = explode('/', $date_commande_raw);
-        if (count($parts) === 3) {
-            $date_commande = $parts[2] . '-' . $parts[1] . '-' . $parts[0];
-        } else {
-            $date_commande = date('Y-m-d');
-        }
+    if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $date_commande_raw)) {
+        $date_commande = $date_commande_raw;
+    } elseif (preg_match('/^(\d{2})[\/.](\d{2})[\/.](\d{4})$/', $date_commande_raw, $m)) {
+        $date_commande = $m[3] . '-' . $m[2] . '-' . $m[1];
     } else {
-        $date_commande = !empty($date_commande_raw) ? $date_commande_raw : date('Y-m-d');
+        $date_commande = date('Y-m-d');
     }
 
-    // Конвертируем дату оплаты из DD/MM/YYYY в YYYY-MM-DD
     $date_paiement_raw = trim($_POST['date_paiement'] ?? '');
     $date_paiement = null;
-    if (!empty($date_paiement_raw) && strpos($date_paiement_raw, '/') !== false) {
-        $parts = explode('/', $date_paiement_raw);
-        if (count($parts) === 3) {
-            $date_paiement = $parts[2] . '-' . $parts[1] . '-' . $parts[0];
-        }
-    } elseif (!empty($date_paiement_raw)) {
+    if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $date_paiement_raw)) {
         $date_paiement = $date_paiement_raw;
+    } elseif (preg_match('/^(\d{2})[\/.](\d{2})[\/.](\d{4})$/', $date_paiement_raw, $m)) {
+        $date_paiement = $m[3] . '-' . $m[2] . '-' . $m[1];
     }
 
-    $rdv_time = trim($_POST['rdv_time'] ?? null);
-    $client_id = (int) ($_POST['client_id'] ?? 0);
-    $platform_id = (int) ($_POST['platform_id'] ?? 0);
-    $payment_method_id = (int) ($_POST['payment_method_id'] ?? 0);
-    $facture_id = !empty($_POST['facture_id']) ? (int) $_POST['facture_id'] : null;
-    $montant = str_replace(',', '.', trim($_POST['montant'] ?? '0'));
-    $statut = trim($_POST['statut'] ?? 'Prévu');
-    $notes = trim($_POST['notes'] ?? '');
-    $commentaire = trim($_POST['commentaire'] ?? '');
+    $rdv_time           = trim($_POST['rdv_time'] ?? '');
+    $client_id          = (int)($_POST['client_id'] ?? 0);
+    $platform_id        = (int)($_POST['platform_id'] ?? 0);
+    $payment_method_id  = (int)($_POST['payment_method_id'] ?? 0);
+    $facture_id         = !empty($_POST['facture_id']) ? (int)$_POST['facture_id'] : null;
+    $montant            = str_replace(',', '.', trim($_POST['montant'] ?? '0'));
+    $statut             = trim($_POST['statut'] ?? 'Prévu');
+    $notes              = trim($_POST['notes'] ?? '');
+    $commentaire        = trim($_POST['commentaire'] ?? '');
 
-    $calcul_impot = isset($_POST['calcul_impot']) ? $_POST['calcul_impot'] : 0;
-    $calcul_epargne = isset($_POST['calcul_epargne']) ? $_POST['calcul_epargne'] : 0;
-    $impot_paye = isset($_POST['impot_paye']) ? 1 : 0;
-    $epargne_paye = isset($_POST['epargne_paye']) ? 1 : 0;
+    $calcul_impot       = isset($_POST['calcul_impot']) ? $_POST['calcul_impot'] : 0;
+    $calcul_epargne     = isset($_POST['calcul_epargne']) ? $_POST['calcul_epargne'] : 0;
+    $impot_paye         = isset($_POST['impot_paye']) ? 1 : 0;
+    $epargne_paye       = isset($_POST['epargne_paye']) ? 1 : 0;
 
+    // Проверка обязательных полей
     $errors = [];
-    if ($client_id <= 0)
-        $errors[] = 'Client';
-    if (empty($montant))
-        $errors[] = 'Montant';
-    if (empty($rdv_time))
-        $errors[] = 'Heure RDV';
-    if ($platform_id <= 0)
-        $errors[] = 'Plateforme';
-    if ($payment_method_id <= 0)
-        $errors[] = 'Mode de paiement';
+    if ($client_id <= 0)         $errors[] = 'Client';
+    if (empty($montant))         $errors[] = 'Montant';
+    if (empty($rdv_time))        $errors[] = 'Heure RDV';
+    if ($platform_id <= 0)       $errors[] = 'Plateforme';
+    if ($payment_method_id <= 0) $errors[] = 'Mode de paiement';
+    if ($statut === 'Payé' && empty($date_paiement)) $errors[] = 'Date de paiement';
 
     if (!empty($errors)) {
         $message = '<div class="alert alert-danger">Champs non remplis : <strong>' . implode(', ', $errors) . '</strong></div>';
@@ -80,7 +70,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $max_id = $stmtMax->fetchColumn();
 
             if ($max_id) {
-                $next_num = (int) $max_id + 1;
+                $next_num = (int)$max_id + 1;
                 $next_order_id = 'CMD-' . $current_year . '-' . $next_num;
             }
 
@@ -98,31 +88,43 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             ");
 
             $stmt->execute([
-                ':id_commande' => $next_order_id,
-                ':date_commande' => $date_commande,
-                ':rdv_time' => !empty($rdv_time) ? $rdv_time : null,
-                ':client_id' => $client_id,
-                ':platform_id' => $platform_id > 0 ? $platform_id : null,
-                ':payment_method_id' => $payment_method_id > 0 ? $payment_method_id : null,
-                ':facture_id' => $facture_id,
-                ':montant' => $montant,
-                ':statut' => $statut,
-                ':date_paiement' => $date_paiement,
-                ':notes' => $notes,
-                ':commentaire' => $commentaire,
-                ':calcul_impot' => $calcul_impot,
-                ':calcul_epargne' => $calcul_epargne,
-                ':impot_paye' => $impot_paye,
-                ':epargne_paye' => $epargne_paye
+                ':id_commande'       => $next_order_id,
+                ':date_commande'     => $date_commande,
+                ':rdv_time'          => $rdv_time,
+                ':client_id'         => $client_id,
+                ':platform_id'       => $platform_id,
+                ':payment_method_id' => $payment_method_id,
+                ':facture_id'        => $facture_id,
+                ':montant'           => $montant,
+                ':statut'            => $statut,
+                ':date_paiement'     => $date_paiement,
+                ':notes'             => $notes,
+                ':commentaire'       => $commentaire,
+                ':calcul_impot'      => $calcul_impot,
+                ':calcul_epargne'    => $calcul_epargne,
+                ':impot_paye'        => $impot_paye,
+                ':epargne_paye'      => $epargne_paye
             ]);
 
             $new_id = $pdo->lastInsertId();
 
             header("Location: commandes_list.php?added=1&scroll=" . $new_id);
             exit;
+
         } catch (PDOException $e) {
             $message = '<div class="alert alert-danger">Erreur d\'enregistrement : ' . htmlspecialchars($e->getMessage()) . '</div>';
         }
+    }
+}
+
+// Список времени с шагом 30 минут
+$startHour = 7;   // первое время в списке
+$endHour   = 22;  // последнее время в списке
+$timeSlots = [];
+for ($h = $startHour; $h <= $endHour; $h++) {
+    foreach ([0, 30] as $mm) {
+        if ($h === $endHour && $mm > 0) break;
+        $timeSlots[] = sprintf('%02d:%02d', $h, $mm);
     }
 }
 
@@ -138,7 +140,6 @@ if (!$is_modal) {
 
 <title>Créer une commande — NumériqueAide</title>
 
-<!-- Подключаем стили Flatpickr -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
 
 <style>
@@ -177,20 +178,9 @@ if (!$is_modal) {
                         <label class="form-label fw-semibold">Heure RDV <span class="text-danger">*</span></label>
                         <select name="rdv_time" id="rdv_time" class="form-select bg-white" required>
                             <option value="">--:--</option>
-                            <?php
-                            $startHour = 7;   // первое время в списке
-                            $endHour = 22;  // последнее время в списке
-                            for ($h = $startHour; $h <= $endHour; $h++):
-                                foreach ([0, 30] as $m):
-                                    if ($h === $endHour && $m > 0)
-                                        break;
-                                    $t = sprintf('%02d:%02d', $h, $m);
-                                    ?>
-                                    <option value="<?= $t; ?>"><?= $t; ?></option>
-                                    <?php
-                                endforeach;
-                            endfor;
-                            ?>
+                            <?php foreach ($timeSlots as $t): ?>
+                                <option value="<?= $t; ?>"><?= $t; ?></option>
+                            <?php endforeach; ?>
                         </select>
                         <div class="invalid-feedback">Veuillez indiquer l'heure du RDV.</div>
                     </div>
@@ -204,6 +194,7 @@ if (!$is_modal) {
                             <option value="<?= $c['id']; ?>"><?= htmlspecialchars(trim($c['nom'] . ' ' . $c['prenom'])); ?></option>
                         <?php endforeach; ?>
                     </select>
+                    <div class="invalid-feedback">Veuillez choisir un client.</div>
                 </div>
 
                 <div class="row">
@@ -233,6 +224,7 @@ if (!$is_modal) {
                     <div class="col-md-4 mb-3">
                         <label class="form-label fw-semibold">Montant (€) <span class="text-danger">*</span></label>
                         <input type="text" name="montant" class="form-control bg-white" placeholder="0.00" required>
+                        <div class="invalid-feedback">Veuillez indiquer le montant.</div>
                     </div>
                     <div class="col-md-4 mb-3">
                         <label class="form-label fw-semibold">Statut</label>
@@ -244,8 +236,9 @@ if (!$is_modal) {
                         </select>
                     </div>
                     <div class="col-md-4 mb-3">
-                        <label class="form-label fw-semibold">Date de paiement</label>
+                        <label class="form-label fw-semibold">Date de paiement <span class="text-danger d-none" id="datePaiementStar">*</span></label>
                         <input type="text" id="date_paiement" name="date_paiement" class="form-control bg-white js-date" placeholder="jj.mm.aaaa">
+                        <div class="invalid-feedback">Indiquez la date de paiement pour une commande payée.</div>
                     </div>
                 </div>
 
@@ -308,6 +301,20 @@ if (!$is_modal) {
 <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/fr.js"></script>
 <script>
+    // Работает, когда форма открыта отдельной страницей (в модальном окне всё запускает commandes_list.php)
+
+    // Если статус «Payé» — дата оплаты обязательна
+    function syncPaymentDateRequired(form) {
+        const statut = form.querySelector('[name="statut"]');
+        const dateInput = form.querySelector('[name="date_paiement"]');
+        if (!statut || !dateInput) return;
+        const isPaid = statut.value === 'Payé';
+        const visible = (dateInput._flatpickr && dateInput._flatpickr.altInput) ? dateInput._flatpickr.altInput : dateInput;
+        visible.required = isPaid;
+        const star = form.querySelector('#datePaiementStar');
+        if (star) star.classList.toggle('d-none', !isPaid);
+    }
+
     document.addEventListener('DOMContentLoaded', function () {
         document.querySelectorAll('.js-date').forEach(function (el) {
             flatpickr(el, {
@@ -317,22 +324,25 @@ if (!$is_modal) {
                 altFormat: 'd.m.Y'
             });
         });
-    });
 
-    function initTimeFP(el) {
-        if (typeof flatpickr !== 'undefined' && !el._flatpickr) {
-            flatpickr(el, {
-                enableTime: true,
-                noCalendar: true,
-                dateFormat: "H:i",
-                time_24hr: true,
-                allowInput: true,
-                locale: "fr"
-            }).open();
-        } else if (el._flatpickr) {
-            el._flatpickr.open();
+        const form = document.querySelector('form[novalidate]');
+        if (form) {
+            syncPaymentDateRequired(form);
+            form.querySelector('[name="statut"]').addEventListener('change', function () {
+                syncPaymentDateRequired(form);
+            });
+
+            form.addEventListener('submit', function (e) {
+                syncPaymentDateRequired(form);
+                if (!form.checkValidity()) {
+                    e.preventDefault();
+                    form.classList.add('was-validated');
+                    const firstInvalid = form.querySelector(':invalid');
+                    if (firstInvalid) firstInvalid.focus();
+                }
+            });
         }
-    }
+    });
 </script>
 
 <?php if (!$is_modal): ?>

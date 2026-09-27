@@ -473,6 +473,21 @@ require_once 'header.php';
     .order-divider { border-bottom: 3px solid #94a3b8 !important; }
     .note-comment { background-color: #d9f2df; }
     .note-info { background-color: #fdf3cf; }
+
+    /* Оплаченные и отменённые заказы: комментарии и заметки без цветного фона, как основная строка */
+    tr.row-status-paye .note-comment,
+    tr.row-status-paye .note-info,
+    tr.row-status-annulee .note-comment,
+    tr.row-status-annulee .note-info {
+        background-color: transparent !important;
+        padding-left: 0 !important;
+    }
+    tr.row-status-paye .note-comment i,
+    tr.row-status-paye .note-info i,
+    tr.row-status-annulee .note-comment i,
+    tr.row-status-annulee .note-info i {
+        color: #6b7280 !important;
+    }
     .order-group-even { background-color: #f8f9fb !important; }
     .order-group-odd { background-color: #ffffff !important; }
 
@@ -486,9 +501,9 @@ require_once 'header.php';
     }
     .table-header-custom th a { color: #020202 !important; }
 
-    .totals-badge { background-color: #000000 !important; color: #ffffff !important; font-weight: bold !important; white-space: nowrap !important; padding: 2px 8px; border-radius: 4px; display: inline-block; }
-    .rdv-time-badge { background-color: #334155; color: #ffffff; padding: 2px 6px; border-radius: 4px; font-weight: 600; display: inline-block; }
-    
+    .totals-badge { background-color: #ffffff !important; color: #14532d !important; font-weight: 700 !important; white-space: nowrap !important; padding: 3px 10px; border-radius: 6px; display: inline-block; box-shadow: 0 1px 2px rgba(0,0,0,.08); }
+    .rdv-time-badge { background-color: #dbeafe; color: #1e40af; padding: 2px 6px; border-radius: 4px; font-weight: 600; display: inline-block; }
+
     #bulkActionButtons {
         position: sticky;
         top: 55px;
@@ -1076,17 +1091,43 @@ require_once 'header.php';
 </button>
 
 <script>
+    // Если статус «Payé» — дата оплаты обязательна
+    function syncPaymentDateRequired(form) {
+        const statut = form.querySelector('[name="statut"]');
+        const dateInput = form.querySelector('[name="date_paiement"]');
+        if (!statut || !dateInput) return;
+
+        const isPaid = statut.value === 'Payé';
+        // у календаря flatpickr видимое поле — altInput
+        const visible = (dateInput._flatpickr && dateInput._flatpickr.altInput) ? dateInput._flatpickr.altInput : dateInput;
+        visible.required = isPaid;
+
+        const star = form.querySelector('#datePaiementStar');
+        if (star) star.classList.toggle('d-none', !isPaid);
+    }
+
+    // Реакция на смену статуса в форме
+    document.addEventListener('change', function (e) {
+        if (e.target && e.target.name === 'statut') {
+            const form = e.target.closest('form');
+            if (form) syncPaymentDateRequired(form);
+        }
+    });
+
     // Календарь для полей дат в формах (класс js-date)
     function initDatePickers(root) {
-        if (typeof flatpickr === 'undefined') return;
-        root.querySelectorAll('.js-date').forEach(function (el) {
-            flatpickr(el, {
-                locale: 'fr',        // французские месяцы, неделя с понедельника
-                dateFormat: 'Y-m-d', // формат для сервера
-                altInput: true,
-                altFormat: 'd.m.Y'   // формат на экране: 27.09.2026
+        if (typeof flatpickr !== 'undefined') {
+            root.querySelectorAll('.js-date').forEach(function (el) {
+                flatpickr(el, {
+                    locale: 'fr',        // французские месяцы, неделя с понедельника
+                    dateFormat: 'Y-m-d', // формат для сервера
+                    altInput: true,
+                    altFormat: 'd.m.Y'   // формат на экране: 27.09.2026
+                });
             });
-        });
+        }
+        const form = root.querySelector('form');
+        if (form) syncPaymentDateRequired(form);
     }
 
     const commandeModal = new bootstrap.Modal(document.getElementById('commandeModal'));
@@ -1120,6 +1161,8 @@ require_once 'header.php';
                 if (modalForm) {
                     modalForm.addEventListener('submit', function(e) {
                         e.preventDefault();
+
+                        syncPaymentDateRequired(modalForm);
 
                         // проверка обязательных полей
                         if (!modalForm.checkValidity()) {
