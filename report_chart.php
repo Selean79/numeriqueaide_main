@@ -91,16 +91,17 @@ foreach ($all_yms as $ym) {
     $data_net[]       = $net_amount;
 }
 
-// 5. Количество заказов по платформам (без отменённых), с выбором месяца
+// 5. Количество ОПЛАЧЕННЫХ заказов по платформам, с выбором месяца (месяц = дата оплаты)
 $platCols = $pdo->query("SHOW COLUMNS FROM platforms")->fetchAll(PDO::FETCH_COLUMN);
 $platColName = in_array('nom', $platCols) ? 'nom' : (in_array('name', $platCols) ? 'name' : $platCols[1]);
 
 // Список месяцев, в которых есть заказы (для выпадающего списка)
 $fr_months_full = [1 => 'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'];
 $stmtMonths = $pdo->query("
-    SELECT DISTINCT DATE_FORMAT(date_commande, '%Y-%m') AS ym
-    FROM commandes
-    WHERE date_commande IS NOT NULL
+    SELECT DISTINCT DATE_FORMAT(COALESCE(c.date_paiement, c.date_commande), '%Y-%m') AS ym
+    FROM commandes c
+    WHERE LOWER(TRIM(c.statut)) IN ('payé', 'paye', 'terminee', 'завершен', 'оплачен')
+      AND COALESCE(c.date_paiement, c.date_commande) IS NOT NULL
     ORDER BY ym DESC
 ");
 $platform_months = [];
@@ -122,11 +123,11 @@ $pfSql = "
         SUM(c.montant) AS total_montant
     FROM commandes c
     LEFT JOIN platforms p ON c.platform_id = p.id
-    WHERE LOWER(TRIM(c.statut)) NOT IN ('annulee', 'annulée', 'отменен')
+    WHERE LOWER(TRIM(c.statut)) IN ('payé', 'paye', 'terminee', 'завершен', 'оплачен')
 ";
 $pfParams = [];
 if ($pf_month !== '') {
-    $pfSql .= " AND DATE_FORMAT(c.date_commande, '%Y-%m') = :pf_month ";
+    $pfSql .= " AND DATE_FORMAT(COALESCE(c.date_paiement, c.date_commande), '%Y-%m') = :pf_month ";
     $pfParams[':pf_month'] = $pf_month;
 }
 $pfSql .= "
@@ -162,16 +163,16 @@ while ($row = $stmtPlatforms->fetch()) {
     }
 }
 
-// 6. Динамика по месяцам: количество заказов по каждой платформе (без отменённых)
+// 6. Динамика по месяцам: количество ОПЛАЧЕННЫХ заказов по каждой платформе
 $stmtPfMonthly = $pdo->query("
     SELECT
-        DATE_FORMAT(c.date_commande, '%Y-%m') AS ym,
+        DATE_FORMAT(COALESCE(c.date_paiement, c.date_commande), '%Y-%m') AS ym,
         COALESCE(NULLIF(TRIM(p.`$platColName`), ''), 'Privé') AS platform_name,
         COUNT(*) AS nb_commandes
     FROM commandes c
     LEFT JOIN platforms p ON c.platform_id = p.id
-    WHERE LOWER(TRIM(c.statut)) NOT IN ('annulee', 'annulée', 'отменен')
-      AND c.date_commande IS NOT NULL
+    WHERE LOWER(TRIM(c.statut)) IN ('payé', 'paye', 'terminee', 'завершен', 'оплачен')
+      AND COALESCE(c.date_paiement, c.date_commande) IS NOT NULL
     GROUP BY ym, platform_name
     ORDER BY ym ASC
 ");
@@ -268,7 +269,7 @@ require_once 'header.php';
                 <div>
                     <h5 class="fw-bold text-dark mb-1">Commandes par plateforme</h5>
                     <p class="text-muted small mb-0">
-                        Nombre de commandes par plateforme (hors commandes annulées)
+                        Nombre de commandes payées par plateforme
                         — <?= $pf_month !== '' ? htmlspecialchars($platform_months[$pf_month] ?? $pf_month) : 'toute la période'; ?> :
                         <strong><?= $platform_total; ?></strong>
                     </p>
@@ -301,7 +302,7 @@ require_once 'header.php';
     <div class="card shadow-sm border-0 mt-4">
         <div class="card-body p-4">
             <h5 class="fw-bold text-dark mb-1">Évolution mensuelle par plateforme</h5>
-            <p class="text-muted small mb-4">Nombre de commandes par mois et par plateforme (hors commandes annulées)</p>
+            <p class="text-muted small mb-4">Nombre de commandes payées par mois et par plateforme</p>
 
             <?php if (empty($pf_monthly_datasets)): ?>
                 <div class="text-muted text-center py-4">Aucune donnée</div>
