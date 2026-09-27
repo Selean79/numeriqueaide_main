@@ -82,6 +82,10 @@ if ($export === 'csv') {
     exit;
 }
 
+// Предыдущий / следующий день (для быстрых кнопок)
+$prev_date = date('d.m.Y', strtotime($report_date . ' -1 day'));
+$next_date = date('d.m.Y', strtotime($report_date . ' +1 day'));
+
 require_once 'header.php';
 ?>
 
@@ -100,38 +104,126 @@ require_once 'header.php';
         display: inline-block;
         font-size: 0.9rem;
     }
+
+    /* Заметка клиента текстом — только на телефоне (там нет наведения мыши) */
+    .client-note-mobile { display: none; }
+
+    /* =========================================================
+       МОБИЛЬНАЯ ВЕРСИЯ (экраны до 768px): таблица → карточки
+       ========================================================= */
+    @media (max-width: 767.98px) {
+        h3 { font-size: 1.15rem; }
+
+        .daily-table thead { display: none; }
+        .daily-table,
+        .daily-table tbody { display: block; width: 100%; }
+
+        .daily-table tr.daily-row {
+            display: block;
+            position: relative;
+            margin: 10px;
+            background: #ffffff;
+            border: 1px solid #dee2e6;
+            border-radius: 10px;
+            box-shadow: 0 1px 3px rgba(0,0,0,.08);
+            overflow: hidden;
+        }
+        .daily-table tr.daily-row > td {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            padding: 6px 12px;
+            border: none;
+            white-space: normal !important;
+            background: transparent;
+        }
+        .daily-table tr.daily-row > td[data-label]::before {
+            content: attr(data-label);
+            font-weight: 600;
+            color: #6b7280;
+            min-width: 85px;
+            flex-shrink: 0;
+        }
+
+        /* Верх карточки: номер заказа слева, время справа */
+        .daily-table tr.daily-row > td.cell-id {
+            font-size: 1.05rem;
+            padding: 10px 12px 8px;
+            background: #f1f5f9;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        .daily-table tr.daily-row > td.cell-time {
+            position: absolute;
+            top: 6px;
+            right: 6px;
+            padding: 0;
+        }
+
+        /* Клиент крупнее */
+        .daily-table tr.daily-row > td.cell-client { font-size: 1.05rem; }
+
+        /* Телефон — большая кнопка для звонка */
+        .daily-table tr.daily-row > td.cell-phone a {
+            display: inline-block;
+            padding: 4px 10px;
+            border: 1px solid #0d6efd;
+            border-radius: 6px;
+        }
+
+        /* Описание работ — подпись сверху */
+        .daily-table tr.daily-row > td.cell-desc {
+            flex-direction: column;
+            gap: 2px;
+            border-top: 1px solid #f1f5f9;
+            padding-bottom: 10px;
+        }
+
+        .client-note-mobile { display: block; }
+        .client-note-icon { display: none; }
+
+        .daily-table tr.row-empty, .daily-table tr.row-empty > td { display: block; }
+    }
+
+    /* Печать — всегда таблицей */
+    @media print {
+        .no-print { display: none !important; }
+    }
 </style>
 
-<div class="container-fluid mt-4 px-4">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <div class="d-flex align-items-center gap-2">
-            <a href="reports.php" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left"></i> Retour aux rapports</a>
+<div class="container-fluid mt-3 mt-md-4 px-2 px-md-4">
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2 mb-3">
+        <div class="d-flex flex-column flex-md-row align-items-start align-items-md-center gap-2">
+            <a href="reports.php" class="btn btn-outline-secondary btn-sm no-print"><i class="bi bi-arrow-left"></i> Retour aux rapports</a>
             <h3 class="mb-0"><i class="bi bi-person-lines-fill me-2"></i>Commandes du jour ou de la date choisie</h3>
         </div>
-        <div>
-            <a href="?<?= http_build_query(array_merge($_GET, ['report_date' => date('d.m.Y', strtotime($report_date)), 'export' => 'csv'])); ?>" class="btn btn-outline-success me-2">
-                <i class="bi bi-file-earmark-excel me-1"></i> Télécharger en Excel
+        <div class="d-flex gap-2 no-print">
+            <a href="?<?= http_build_query(array_merge($_GET, ['report_date' => date('d.m.Y', strtotime($report_date)), 'export' => 'csv'])); ?>" class="btn btn-outline-success flex-fill">
+                <i class="bi bi-file-earmark-excel me-1"></i> <span class="d-none d-sm-inline">Télécharger en </span>Excel
             </a>
-            <button onclick="window.print();" class="btn btn-outline-secondary">
+            <button onclick="window.print();" class="btn btn-outline-secondary flex-fill">
                 <i class="bi bi-printer me-1"></i> Imprimer
             </button>
         </div>
     </div>
 
     <!-- Селектор даты -->
-    <div class="card shadow-sm mb-4">
-        <div class="card-body">
-            <form method="GET" class="row g-3 align-items-end">
-                <div class="col-md-4">
+    <div class="card shadow-sm mb-3 mb-md-4 no-print">
+        <div class="card-body p-2 p-md-3">
+            <form method="GET" class="row g-2 align-items-end">
+                <div class="col-12 col-md-4">
                     <label class="form-label fw-semibold">Sélectionner une date</label>
-                    <input type="text" id="report_date_picker" name="report_date" class="form-control bg-white" value="<?= htmlspecialchars(date('d.m.Y', strtotime($report_date))); ?>" required readonly>
+                    <div class="input-group">
+                        <a href="?report_date=<?= $prev_date; ?>" class="btn btn-outline-secondary" title="Jour précédent"><i class="bi bi-chevron-left"></i></a>
+                        <input type="text" id="report_date_picker" name="report_date" class="form-control bg-white text-center" value="<?= htmlspecialchars(date('d.m.Y', strtotime($report_date))); ?>" required readonly>
+                        <a href="?report_date=<?= $next_date; ?>" class="btn btn-outline-secondary" title="Jour suivant"><i class="bi bi-chevron-right"></i></a>
+                    </div>
                 </div>
-                <div class="col-md-3">
+                <div class="col-8 col-md-3">
                     <button type="submit" class="btn btn-primary w-100">
-                        <i class="bi bi-calendar-check me-1"></i> Afficher pour cette date
+                        <i class="bi bi-calendar-check me-1"></i> Afficher<span class="d-none d-sm-inline"> pour cette date</span>
                     </button>
                 </div>
-                <div class="col-md-2">
+                <div class="col-4 col-md-2">
                     <a href="report_daily_clients.php" class="btn btn-outline-secondary w-100">Aujourd'hui</a>
                 </div>
             </form>
@@ -140,15 +232,15 @@ require_once 'header.php';
 
     <!-- Таблица результатов -->
     <div class="card shadow-sm">
-        <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center py-3">
+        <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center py-2 py-md-3">
             <span class="fw-bold fs-6">
-                <i class="bi bi-calendar3 me-2"></i>Liste des interventions du <?= date('d.m.Y', strtotime($report_date)); ?>
+                <i class="bi bi-calendar3 me-2"></i><span class="d-none d-sm-inline">Liste des interventions du </span><?= date('d.m.Y', strtotime($report_date)); ?>
             </span>
             <span class="badge bg-primary fs-6">Commandes : <?= count($daily_orders); ?></span>
         </div>
         <div class="card-body p-0">
             <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0 w-100">
+                <table class="table table-hover align-middle mb-0 w-100 daily-table">
                     <thead class="table-light">
                     <tr>
                         <th class="text-nowrap" style="width: 80px;">ID</th>
@@ -162,7 +254,7 @@ require_once 'header.php';
                     </thead>
                     <tbody>
                     <?php if (empty($daily_orders)): ?>
-                        <tr>
+                        <tr class="row-empty">
                             <td colspan="7" class="text-center py-4 text-muted">
                                 <i class="bi bi-info-circle me-1"></i> Aucune commande n'est planifiée pour la date sélectionnée.
                             </td>
@@ -180,9 +272,9 @@ require_once 'header.php';
                                 $platBadgeClass = 'bg-success';
                             }
                             ?>
-                            <tr>
-                                <td class="fw-bold text-nowrap">#<?= $row['id_commande']; ?></td>
-                                <td class="text-nowrap">
+                            <tr class="daily-row">
+                                <td class="fw-bold text-nowrap cell-id">#<?= htmlspecialchars($row['id_commande']); ?></td>
+                                <td class="text-nowrap cell-time">
                                     <?php if (!empty($row['rdv_time'])): ?>
                                         <span class="rdv-time-badge">
                                             <i class="bi bi-clock me-1"></i><?= substr($row['rdv_time'], 0, 5); ?>
@@ -191,16 +283,21 @@ require_once 'header.php';
                                         <span class="text-muted">—</span>
                                     <?php endif; ?>
                                 </td>
-                                <td class="fw-semibold text-nowrap">
-                                    <?= !empty($clientName) ? htmlspecialchars($clientName) : '<span class="text-muted">—</span>'; ?>
+                                <td class="fw-semibold text-nowrap cell-client" data-label="Client">
+                                    <div>
+                                        <?= !empty($clientName) ? htmlspecialchars($clientName) : '<span class="text-muted">—</span>'; ?>
 
-                                    <?php if (!empty($row['client_notes'])): ?>
-                                        <span class="text-danger ms-1" data-bs-toggle="tooltip" data-bs-placement="top" title="<?= htmlspecialchars($row['client_notes']); ?>" style="cursor: pointer;">
-                                            <i class="bi bi-exclamation-circle-fill"></i>
-                                        </span>
-                                    <?php endif; ?>
+                                        <?php if (!empty($row['client_notes'])): ?>
+                                            <span class="text-danger ms-1 client-note-icon" data-bs-toggle="tooltip" data-bs-placement="top" title="<?= htmlspecialchars($row['client_notes']); ?>" style="cursor: pointer;">
+                                                <i class="bi bi-exclamation-circle-fill"></i>
+                                            </span>
+                                            <div class="client-note-mobile small text-danger fw-normal mt-1">
+                                                <i class="bi bi-exclamation-circle-fill me-1"></i><?= htmlspecialchars($row['client_notes']); ?>
+                                            </div>
+                                        <?php endif; ?>
+                                    </div>
                                 </td>
-                                <td class="text-nowrap">
+                                <td class="text-nowrap cell-phone" data-label="Téléphone">
                                     <?php if (!empty($row['telephone'])): ?>
                                         <a href="tel:<?= preg_replace('/[^\d+]/', '', $row['telephone']); ?>" class="text-decoration-none fw-semibold">
                                             <i class="bi bi-telephone me-1"></i><?= htmlspecialchars($row['telephone']); ?>
@@ -209,7 +306,7 @@ require_once 'header.php';
                                         <span class="text-muted">—</span>
                                     <?php endif; ?>
                                 </td>
-                                <td class="text-nowrap">
+                                <td class="text-nowrap" data-label="Adresse">
                                     <?php if (!empty($row['adresse'])): ?>
                                         <a href="https://www.google.com/maps/search/?api=1&query=<?= urlencode($row['adresse']); ?>" target="_blank" class="text-decoration-none text-dark">
                                             <i class="bi bi-geo-alt text-danger me-1"></i><u><?= htmlspecialchars($row['adresse']); ?></u>
@@ -218,8 +315,8 @@ require_once 'header.php';
                                         <span class="text-muted">—</span>
                                     <?php endif; ?>
                                 </td>
-                                <td class="text-nowrap"><span class="badge <?= $platBadgeClass; ?>"><?= htmlspecialchars($platformName); ?></span></td>
-                                <td>
+                                <td class="text-nowrap" data-label="Plateforme"><span class="badge <?= $platBadgeClass; ?>"><?= htmlspecialchars($platformName); ?></span></td>
+                                <td class="cell-desc">
                                     <?php if (!empty($row['commentaire'])): ?>
                                         <div class="fw-semibold text-dark"><i class="bi bi-tools me-1 text-primary"></i><?= htmlspecialchars($row['commentaire']); ?></div>
                                     <?php endif; ?>
@@ -245,10 +342,14 @@ require_once 'header.php';
 <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 <script>
     document.addEventListener("DOMContentLoaded", function() {
-        // Инициализация календаря
+        // Инициализация календаря (при выборе даты страница обновляется сразу)
         flatpickr("#report_date_picker", {
             dateFormat: "d.m.Y",
             defaultDate: "<?= date('d.m.Y', strtotime($report_date)); ?>",
+            disableMobile: true,
+            onChange: function(selectedDates, dateStr, instance) {
+                instance.input.form.submit();
+            },
             locale: {
                 firstDayOfWeek: 1,
                 weekdays: {
@@ -264,7 +365,7 @@ require_once 'header.php';
 
         // Инициализация всплывающих подсказок (Tooltips) для заметок клиентов
         var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        tooltipTriggerList.map(function (tooltipTriggerEl) {
             return new bootstrap.Tooltip(tooltipTriggerEl);
         });
     });
