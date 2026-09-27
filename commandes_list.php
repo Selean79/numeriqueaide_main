@@ -487,6 +487,11 @@ require_once 'header.php';
     tr.row-selected, tr.row-selected > td { background-color: #eef7ff !important; }
     .order-actions .btn { min-width: 30px; padding: 1px 6px; }
     body { background-color: #d3d1d1 !important; }
+    
+    tr.row-just-saved > td {
+    background-color: #fff3a0 !important;
+    transition: background-color .5s;
+}
 </style>
 
 <div class="container-fluid mt-4 px-4">
@@ -1058,18 +1063,31 @@ require_once 'header.php';
         }
     });
 
-    document.addEventListener("DOMContentLoaded", function () {
-        if (window.location.hash) {
-            const targetElement = document.querySelector(window.location.hash);
-            if (targetElement) {
-                targetElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                targetElement.classList.add('table-active');
-                setTimeout(() => {
-                    targetElement.classList.remove('table-active');
-                }, 2000);
-            }
-        }
-    });
+   document.addEventListener("DOMContentLoaded", function () {
+    const params = new URLSearchParams(window.location.search);
+    let targetId = params.get('scroll');
+
+    // якорь #order-ID тоже поддерживаем (используется при копировании)
+    if (!targetId && window.location.hash.startsWith('#order-')) {
+        targetId = window.location.hash.replace('#order-', '');
+    }
+    if (!targetId) return;
+
+    const row = document.getElementById('order-' + targetId);
+    if (row) {
+        const noteRow = row.nextElementSibling; // строка с заметками
+        row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        [row, noteRow].forEach(r => r && r.classList.add('row-just-saved'));
+        setTimeout(() => {
+            [row, noteRow].forEach(r => r && r.classList.remove('row-just-saved'));
+        }, 2500);
+    }
+
+    // чистим адрес, чтобы при F5 не прокручивало повторно
+    ['scroll', 'added', 'updated', 'copied'].forEach(p => params.delete(p));
+    const qs = params.toString();
+    history.replaceState(null, '', window.location.pathname + (qs ? '?' + qs : ''));
+});
 
     setTimeout(function () {
         const alerts = document.querySelectorAll('.alert');

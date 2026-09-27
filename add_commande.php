@@ -106,8 +106,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             $new_id = $pdo->lastInsertId();
 
-            header("Location: commandes_list.php?added=1#order-" . $new_id);
-            exit;
+           header("Location: commandes_list.php?added=1&scroll=" . $new_id);
+            exit;       
 
         } catch (PDOException $e) {
             $message = '<div class="alert alert-danger">Erreur d\'enregistrement : ' . htmlspecialchars($e->getMessage()) . '</div>';

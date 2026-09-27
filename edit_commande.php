@@ -90,8 +90,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 ':id'                => $id
             ]);
 
-            header("Location: commandes_list.php?updated=1#order-" . $id);
-            exit;
+           header("Location: commandes_list.php?updated=1&scroll=" . $id);
+           exit;
 
         } catch (PDOException $e) {
             $message = '<div class="alert alert-danger">Erreur de modification : ' . htmlspecialchars($e->getMessage()) . '</div>';
