@@ -40,6 +40,7 @@ $sql = "
         cl.prenom,
         cl.telephone,
         cl.adresse,
+        cl.adresse_2,
         cl.notes AS client_notes,
         p.`$platColName` AS platform_name
     FROM commandes c
@@ -66,13 +67,17 @@ if ($export === 'csv') {
         $clientName = trim(($row['nom'] ?? '') . ' ' . ($row['prenom'] ?? ''));
         $description = implode(' | ', array_filter([$row['commentaire'], $row['order_notes']]));
         $timeStr = !empty($row['rdv_time']) ? substr($row['rdv_time'], 0, 5) : '—';
+        $fullAddress = implode(', ', array_filter([
+                trim($row['adresse'] ?? ''),
+                trim(preg_replace('/\s+/', ' ', $row['adresse_2'] ?? ''))
+        ]));
 
         fputcsv($output, [
                 '#' . $row['id_commande'],
                 $timeStr,
                 $clientName ?: '—',
                 $row['telephone'] ?: '—',
-                $row['adresse'] ?: '—',
+                $fullAddress ?: '—',
                 $row['platform_name'] ?: 'Privé',
                 $description ?: '—'
         ], ';');
@@ -103,6 +108,34 @@ require_once 'header.php';
         font-weight: 600;
         display: inline-block;
         font-size: 0.9rem;
+    }
+
+    /* Фирменный зелёный цвет — поменяйте здесь, и он изменится везде на странице */
+    :root {
+        --brand-green: #1f9d55;
+        --brand-green-text: #ffffff;
+    }
+    .brand-header {
+        background-color: var(--brand-green) !important;
+        color: var(--brand-green-text) !important;
+        border-bottom: none;
+    }
+    .brand-badge {
+        background-color: #ffffff !important;
+        color: var(--brand-green) !important;
+    }
+    @media print {
+        .brand-header { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    }
+
+    /* Дополнительный адрес (здание, этаж, код...) */
+    .address-extra {
+        padding-left: 1.3rem;
+        white-space: normal;
+        line-height: 1.3;
+    }
+    @media (max-width: 767.98px) {
+        .address-extra { padding-left: 0; }
     }
 
     /* Заметка клиента текстом — только на телефоне (там нет наведения мыши) */
@@ -232,11 +265,11 @@ require_once 'header.php';
 
     <!-- Таблица результатов -->
     <div class="card shadow-sm">
-        <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center py-2 py-md-3">
+        <div class="card-header brand-header d-flex justify-content-between align-items-center py-2 py-md-3">
             <span class="fw-bold fs-6">
                 <i class="bi bi-calendar3 me-2"></i><span class="d-none d-sm-inline">Liste des interventions du </span><?= date('d.m.Y', strtotime($report_date)); ?>
             </span>
-            <span class="badge bg-primary fs-6">Commandes : <?= count($daily_orders); ?></span>
+            <span class="badge brand-badge fs-6">Commandes : <?= count($daily_orders); ?></span>
         </div>
         <div class="card-body p-0">
             <div class="table-responsive">
@@ -306,14 +339,24 @@ require_once 'header.php';
                                         <span class="text-muted">—</span>
                                     <?php endif; ?>
                                 </td>
-                                <td class="text-nowrap" data-label="Adresse">
-                                    <?php if (!empty($row['adresse'])): ?>
-                                        <a href="https://www.google.com/maps/search/?api=1&query=<?= urlencode($row['adresse']); ?>" target="_blank" class="text-decoration-none text-dark">
-                                            <i class="bi bi-geo-alt text-danger me-1"></i><u><?= htmlspecialchars($row['adresse']); ?></u>
-                                        </a>
-                                    <?php else: ?>
-                                        <span class="text-muted">—</span>
-                                    <?php endif; ?>
+                                <td data-label="Adresse">
+                                    <div>
+                                        <?php if (!empty($row['adresse'])): ?>
+                                            <a href="https://www.google.com/maps/search/?api=1&query=<?= urlencode($row['adresse']); ?>" target="_blank" class="text-decoration-none text-dark text-nowrap">
+                                                <i class="bi bi-geo-alt text-danger me-1"></i><u><?= htmlspecialchars($row['adresse']); ?></u>
+                                            </a>
+                                        <?php endif; ?>
+
+                                        <?php if (!empty(trim($row['adresse_2'] ?? ''))): ?>
+                                            <div class="address-extra small text-muted mt-1">
+                                                <i class="bi bi-building me-1"></i><?= nl2br(htmlspecialchars(trim($row['adresse_2']))); ?>
+                                            </div>
+                                        <?php endif; ?>
+
+                                        <?php if (empty($row['adresse']) && empty(trim($row['adresse_2'] ?? ''))): ?>
+                                            <span class="text-muted">—</span>
+                                        <?php endif; ?>
+                                    </div>
                                 </td>
                                 <td class="text-nowrap" data-label="Plateforme"><span class="badge <?= $platBadgeClass; ?>"><?= htmlspecialchars($platformName); ?></span></td>
                                 <td class="cell-desc">
