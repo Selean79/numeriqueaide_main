@@ -487,8 +487,8 @@ require_once 'header.php';
     .table-header-custom th a { color: #020202 !important; }
 
     .totals-badge { background-color: #000000 !important; color: #ffffff !important; font-weight: bold !important; white-space: nowrap !important; padding: 2px 8px; border-radius: 4px; display: inline-block; }
-    .rdv-time-badge { background-color: #e2e8f0; color: #1e293b; padding: 2px 6px; border-radius: 4px; font-weight: 600; display: inline-block; }
-
+    .rdv-time-badge { background-color: #334155; color: #ffffff; padding: 2px 6px; border-radius: 4px; font-weight: 600; display: inline-block; }
+    
     #bulkActionButtons {
         position: sticky;
         top: 55px;
