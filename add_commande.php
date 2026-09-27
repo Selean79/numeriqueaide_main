@@ -33,23 +33,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $date_paiement = $date_paiement_raw;
     }
 
-    $rdv_time           = trim($_POST['rdv_time'] ?? null);
-    $client_id          = (int)($_POST['client_id'] ?? 0);
-    $platform_id        = (int)($_POST['platform_id'] ?? 0);
-    $payment_method_id  = (int)($_POST['payment_method_id'] ?? 0);
-    $facture_id         = !empty($_POST['facture_id']) ? (int)$_POST['facture_id'] : null;
-    $montant            = str_replace(',', '.', trim($_POST['montant'] ?? '0'));
-    $statut             = trim($_POST['statut'] ?? 'Prévu');
-    $notes              = trim($_POST['notes'] ?? '');
-    $commentaire        = trim($_POST['commentaire'] ?? '');
-    
-    $calcul_impot       = isset($_POST['calcul_impot']) ? $_POST['calcul_impot'] : 0;
-    $calcul_epargne     = isset($_POST['calcul_epargne']) ? $_POST['calcul_epargne'] : 0;
-    $impot_paye         = isset($_POST['impot_paye']) ? 1 : 0;
-    $epargne_paye       = isset($_POST['epargne_paye']) ? 1 : 0;
+    $rdv_time = trim($_POST['rdv_time'] ?? null);
+    $client_id = (int) ($_POST['client_id'] ?? 0);
+    $platform_id = (int) ($_POST['platform_id'] ?? 0);
+    $payment_method_id = (int) ($_POST['payment_method_id'] ?? 0);
+    $facture_id = !empty($_POST['facture_id']) ? (int) $_POST['facture_id'] : null;
+    $montant = str_replace(',', '.', trim($_POST['montant'] ?? '0'));
+    $statut = trim($_POST['statut'] ?? 'Prévu');
+    $notes = trim($_POST['notes'] ?? '');
+    $commentaire = trim($_POST['commentaire'] ?? '');
 
-    if ($client_id <= 0 || empty($montant)) {
-        $message = '<div class="alert alert-danger">Veuillez renseigner le client et le montant !</div>';
+    $calcul_impot = isset($_POST['calcul_impot']) ? $_POST['calcul_impot'] : 0;
+    $calcul_epargne = isset($_POST['calcul_epargne']) ? $_POST['calcul_epargne'] : 0;
+    $impot_paye = isset($_POST['impot_paye']) ? 1 : 0;
+    $epargne_paye = isset($_POST['epargne_paye']) ? 1 : 0;
+
+    $errors = [];
+    if ($client_id <= 0)
+        $errors[] = 'Client';
+    if (empty($montant))
+        $errors[] = 'Montant';
+    if (empty($rdv_time))
+        $errors[] = 'Heure RDV';
+    if ($platform_id <= 0)
+        $errors[] = 'Plateforme';
+    if ($payment_method_id <= 0)
+        $errors[] = 'Mode de paiement';
+
+    if (!empty($errors)) {
+        $message = '<div class="alert alert-danger">Champs non remplis : <strong>' . implode(', ', $errors) . '</strong></div>';
     } else {
         try {
             $current_year = date('Y', strtotime($date_commande));
@@ -68,7 +80,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $max_id = $stmtMax->fetchColumn();
 
             if ($max_id) {
-                $next_num = (int)$max_id + 1;
+                $next_num = (int) $max_id + 1;
                 $next_order_id = 'CMD-' . $current_year . '-' . $next_num;
             }
 
@@ -84,31 +96,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     :notes, :commentaire, :calcul_impot, :calcul_epargne, :impot_paye, :epargne_paye
                 )
             ");
-            
+
             $stmt->execute([
-                ':id_commande'       => $next_order_id,
-                ':date_commande'     => $date_commande,
-                ':rdv_time'          => !empty($rdv_time) ? $rdv_time : null,
-                ':client_id'         => $client_id,
-                ':platform_id'       => $platform_id > 0 ? $platform_id : null,
+                ':id_commande' => $next_order_id,
+                ':date_commande' => $date_commande,
+                ':rdv_time' => !empty($rdv_time) ? $rdv_time : null,
+                ':client_id' => $client_id,
+                ':platform_id' => $platform_id > 0 ? $platform_id : null,
                 ':payment_method_id' => $payment_method_id > 0 ? $payment_method_id : null,
-                ':facture_id'        => $facture_id,
-                ':montant'           => $montant,
-                ':statut'            => $statut,
-                ':date_paiement'     => $date_paiement,
-                ':notes'             => $notes,
-                ':commentaire'       => $commentaire,
-                ':calcul_impot'      => $calcul_impot,
-                ':calcul_epargne'    => $calcul_epargne,
-                ':impot_paye'        => $impot_paye,
-                ':epargne_paye'      => $epargne_paye
+                ':facture_id' => $facture_id,
+                ':montant' => $montant,
+                ':statut' => $statut,
+                ':date_paiement' => $date_paiement,
+                ':notes' => $notes,
+                ':commentaire' => $commentaire,
+                ':calcul_impot' => $calcul_impot,
+                ':calcul_epargne' => $calcul_epargne,
+                ':impot_paye' => $impot_paye,
+                ':epargne_paye' => $epargne_paye
             ]);
 
             $new_id = $pdo->lastInsertId();
 
-           header("Location: commandes_list.php?added=1&scroll=" . $new_id);
-            exit;       
-
+            header("Location: commandes_list.php?added=1&scroll=" . $new_id);
+            exit;
         } catch (PDOException $e) {
             $message = '<div class="alert alert-danger">Erreur d\'enregistrement : ' . htmlspecialchars($e->getMessage()) . '</div>';
         }
@@ -156,15 +167,32 @@ if (!$is_modal) {
 
     <div class="card shadow-sm">
         <div class="card-body custom-card-body p-4">
-            <form action="add_commande.php" method="POST">
+            <form action="add_commande.php" method="POST" novalidate>
                 <div class="row">
                     <div class="col-md-6 mb-3">
                         <label class="form-label fw-semibold">Date de commande <span class="text-danger">*</span></label>
-                        <input type="text" id="date_commande" name="date_commande" class="form-control bg-white" placeholder="jj/mm/aaaa" value="<?= date('d/m/Y'); ?>" required onclick="initFP(this)" onfocus="initFP(this)">
+                        <input type="text" id="date_commande" name="date_commande" class="form-control bg-white js-date" value="<?= date('Y-m-d'); ?>" placeholder="jj.mm.aaaa" required>
                     </div>
                     <div class="col-md-6 mb-3">
-                        <label class="form-label fw-semibold">Heure RDV</label>
-                        <input type="text" name="rdv_time" id="rdv_time" class="form-control bg-white" placeholder="--:--" onclick="initTimeFP(this)" onfocus="initTimeFP(this)">
+                        <label class="form-label fw-semibold">Heure RDV <span class="text-danger">*</span></label>
+                        <select name="rdv_time" id="rdv_time" class="form-select bg-white" required>
+                            <option value="">--:--</option>
+                            <?php
+                            $startHour = 7;   // первое время в списке
+                            $endHour = 22;  // последнее время в списке
+                            for ($h = $startHour; $h <= $endHour; $h++):
+                                foreach ([0, 30] as $m):
+                                    if ($h === $endHour && $m > 0)
+                                        break;
+                                    $t = sprintf('%02d:%02d', $h, $m);
+                                    ?>
+                                    <option value="<?= $t; ?>"><?= $t; ?></option>
+                                    <?php
+                                endforeach;
+                            endfor;
+                            ?>
+                        </select>
+                        <div class="invalid-feedback">Veuillez indiquer l'heure du RDV.</div>
                     </div>
                 </div>
 
@@ -180,22 +208,24 @@ if (!$is_modal) {
 
                 <div class="row">
                     <div class="col-md-6 mb-3">
-                        <label class="form-label fw-semibold">Plateforme</label>
-                        <select name="platform_id" class="form-select bg-white">
-                            <option value="">Aucune</option>
+                        <label class="form-label fw-semibold">Plateforme <span class="text-danger">*</span></label>
+                        <select name="platform_id" class="form-select bg-white" required>
+                            <option value="">Sélectionner...</option>
                             <?php foreach ($platforms as $p): ?>
                                 <option value="<?= $p['id']; ?>"><?= htmlspecialchars($p['nom'] ?? $p['name'] ?? ''); ?></option>
                             <?php endforeach; ?>
                         </select>
+                        <div class="invalid-feedback">Veuillez choisir une plateforme.</div>
                     </div>
                     <div class="col-md-6 mb-3">
-                        <label class="form-label fw-semibold">Mode de paiement</label>
-                        <select name="payment_method_id" class="form-select bg-white">
-                            <option value="">Aucun</option>
+                        <label class="form-label fw-semibold">Mode de paiement <span class="text-danger">*</span></label>
+                        <select name="payment_method_id" class="form-select bg-white" required>
+                            <option value="">Sélectionner...</option>
                             <?php foreach ($payment_methods as $pm): ?>
                                 <option value="<?= $pm['id']; ?>"><?= htmlspecialchars($pm['nom'] ?? $pm['name'] ?? ''); ?></option>
                             <?php endforeach; ?>
                         </select>
+                        <div class="invalid-feedback">Veuillez choisir un mode de paiement.</div>
                     </div>
                 </div>
 
@@ -215,7 +245,7 @@ if (!$is_modal) {
                     </div>
                     <div class="col-md-4 mb-3">
                         <label class="form-label fw-semibold">Date de paiement</label>
-                        <input type="text" id="date_paiement" name="date_paiement" class="form-control bg-white" placeholder="jj/mm/aaaa" onclick="initFP(this)" onfocus="initFP(this)">
+                        <input type="text" id="date_paiement" name="date_paiement" class="form-control bg-white js-date" placeholder="jj.mm.aaaa">
                     </div>
                 </div>
 
@@ -278,17 +308,16 @@ if (!$is_modal) {
 <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/fr.js"></script>
 <script>
-    function initFP(el) {
-        if (typeof flatpickr !== 'undefined' && !el._flatpickr) {
+    document.addEventListener('DOMContentLoaded', function () {
+        document.querySelectorAll('.js-date').forEach(function (el) {
             flatpickr(el, {
-                dateFormat: "d/m/Y",
-                allowInput: true,
-                locale: "fr"
-            }).open();
-        } else if (el._flatpickr) {
-            el._flatpickr.open();
-        }
-    }
+                locale: 'fr',
+                dateFormat: 'Y-m-d',
+                altInput: true,
+                altFormat: 'd.m.Y'
+            });
+        });
+    });
 
     function initTimeFP(el) {
         if (typeof flatpickr !== 'undefined' && !el._flatpickr) {

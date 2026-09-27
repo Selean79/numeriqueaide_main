@@ -13,12 +13,12 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 
 /*
-|--------------------------------------------------------------------------
-| Удаление заказа (одиночное)
-|--------------------------------------------------------------------------
-*/
+  |--------------------------------------------------------------------------
+  | Удаление заказа (одиночное)
+  |--------------------------------------------------------------------------
+ */
 if (isset($_GET['delete_id'])) {
-    $delete_id = (int)$_GET['delete_id'];
+    $delete_id = (int) $_GET['delete_id'];
 
     try {
         $stmt = $pdo->prepare("
@@ -31,16 +31,15 @@ if (isset($_GET['delete_id'])) {
         ]);
 
         $queryString = http_build_query(
-            array_diff_key($_GET, ['delete_id' => ''])
+                array_diff_key($_GET, ['delete_id' => ''])
         );
 
         header(
-            "Location: commandes_list.php?deleted=1" .
-            ($queryString ? '&' . $queryString : '')
+                "Location: commandes_list.php?deleted=1" .
+                ($queryString ? '&' . $queryString : '')
         );
 
         exit;
-
     } catch (PDOException $e) {
         $error_message = "Ошибка при удалении: " . $e->getMessage();
     }
@@ -48,14 +47,14 @@ if (isset($_GET['delete_id'])) {
 
 
 /*
-|--------------------------------------------------------------------------
-| Массовое удаление выбранных заказов
-|--------------------------------------------------------------------------
-*/
+  |--------------------------------------------------------------------------
+  | Массовое удаление выбранных заказов
+  |--------------------------------------------------------------------------
+ */
 if (
-    $_SERVER['REQUEST_METHOD'] === 'POST' &&
-    isset($_POST['bulk_delete']) &&
-    !empty($_POST['delete_ids'])
+        $_SERVER['REQUEST_METHOD'] === 'POST' &&
+        isset($_POST['bulk_delete']) &&
+        !empty($_POST['delete_ids'])
 ) {
     $ids = array_map('intval', $_POST['delete_ids']);
     $ids = array_values(array_filter($ids));
@@ -63,8 +62,8 @@ if (
     if (count($ids) > 0) {
         try {
             $placeholders = implode(
-                ',',
-                array_fill(0, count($ids), '?')
+                    ',',
+                    array_fill(0, count($ids), '?')
             );
 
             $stmt = $pdo->prepare("
@@ -76,7 +75,6 @@ if (
 
             header("Location: commandes_list.php?deleted=multi");
             exit;
-
         } catch (PDOException $e) {
             $error_message = "Ошибка при массовом удалении: " . $e->getMessage();
         }
@@ -85,14 +83,14 @@ if (
 
 
 /*
-|--------------------------------------------------------------------------
-| Копирование выбранного заказа
-|--------------------------------------------------------------------------
-*/
+  |--------------------------------------------------------------------------
+  | Копирование выбранного заказа
+  |--------------------------------------------------------------------------
+ */
 if (
-    $_SERVER['REQUEST_METHOD'] === 'POST' &&
-    isset($_POST['bulk_copy']) &&
-    !empty($_POST['delete_ids'])
+        $_SERVER['REQUEST_METHOD'] === 'POST' &&
+        isset($_POST['bulk_copy']) &&
+        !empty($_POST['delete_ids'])
 ) {
     $ids = array_map('intval', $_POST['delete_ids']);
     $ids = array_values(array_filter($ids));
@@ -132,7 +130,7 @@ if (
                 $max_id = $stmtMax->fetchColumn();
 
                 if ($max_id) {
-                    $next_num = (int)$max_id + 1;
+                    $next_num = (int) $max_id + 1;
                     $next_order_id = 'CMD-' . $current_year . '-' . $next_num;
                 }
 
@@ -178,22 +176,22 @@ if (
                 $insertStmt = $pdo->prepare($insertSql);
 
                 $insertStmt->execute([
-                    ':id_commande'         => $next_order_id,
-                    ':date_commande'      => $srcOrder['date_commande'],
-                    ':rdv_time'           => $srcOrder['rdv_time'] ?? null,
-                    ':client_id'          => $srcOrder['client_id'],
-                    ':platform_id'        => $srcOrder['platform_id'],
-                    ':payment_method_id'  => $srcOrder['payment_method_id'],
-                    ':facture_id'         => $srcOrder['facture_id'],
-                    ':montant'            => $srcOrder['montant'],
-                    ':statut'             => 'Prévu',
-                    ':date_paiement'      => null,
-                    ':notes'              => $srcOrder['notes'],
-                    ':commentaire'        => $srcOrder['commentaire'],
-                    ':calcul_impot'       => $srcOrder['calcul_impot'],
-                    ':calcul_epargne'     => $srcOrder['calcul_epargne'],
-                    ':impot_paye'         => 0,
-                    ':epargne_paye'       => 0
+                    ':id_commande' => $next_order_id,
+                    ':date_commande' => $srcOrder['date_commande'],
+                    ':rdv_time' => $srcOrder['rdv_time'] ?? null,
+                    ':client_id' => $srcOrder['client_id'],
+                    ':platform_id' => $srcOrder['platform_id'],
+                    ':payment_method_id' => $srcOrder['payment_method_id'],
+                    ':facture_id' => $srcOrder['facture_id'],
+                    ':montant' => $srcOrder['montant'],
+                    ':statut' => 'Prévu',
+                    ':date_paiement' => null,
+                    ':notes' => $srcOrder['notes'],
+                    ':commentaire' => $srcOrder['commentaire'],
+                    ':calcul_impot' => $srcOrder['calcul_impot'],
+                    ':calcul_epargne' => $srcOrder['calcul_epargne'],
+                    ':impot_paye' => 0,
+                    ':epargne_paye' => 0
                 ]);
 
                 $new_order_id = $pdo->lastInsertId();
@@ -201,7 +199,6 @@ if (
                 header("Location: commandes_list.php?copied=1#order-" . $new_order_id);
                 exit;
             }
-
         } catch (PDOException $e) {
             $error_message = "Ошибка при копировании: " . $e->getMessage();
         }
@@ -210,20 +207,20 @@ if (
 
 
 /*
-|--------------------------------------------------------------------------
-| Сброс фильтров
-|--------------------------------------------------------------------------
-*/
+  |--------------------------------------------------------------------------
+  | Сброс фильтров
+  |--------------------------------------------------------------------------
+ */
 if (isset($_GET['clear_filter'])) {
     unset(
-        $_SESSION['cmd_search'],
-        $_SESSION['cmd_status'],
-        $_SESSION['cmd_date_start'],
-        $_SESSION['cmd_date_end'],
-        $_SESSION['cmd_month'],
-        $_SESSION['cmd_year'],
-        $_SESSION['cmd_sort_col'],
-        $_SESSION['cmd_sort_dir']
+            $_SESSION['cmd_search'],
+            $_SESSION['cmd_status'],
+            $_SESSION['cmd_date_start'],
+            $_SESSION['cmd_date_end'],
+            $_SESSION['cmd_month'],
+            $_SESSION['cmd_year'],
+            $_SESSION['cmd_sort_col'],
+            $_SESSION['cmd_sort_dir']
     );
 
     header("Location: commandes_list.php");
@@ -232,21 +229,21 @@ if (isset($_GET['clear_filter'])) {
 
 
 /*
-|--------------------------------------------------------------------------
-| Сохранение фильтров в сессию
-|--------------------------------------------------------------------------
-*/
+  |--------------------------------------------------------------------------
+  | Сохранение фильтров в сессию
+  |--------------------------------------------------------------------------
+ */
 if (
-    isset($_GET['search']) ||
-    isset($_GET['status']) ||
-    isset($_GET['month']) ||
-    isset($_GET['year'])
+        isset($_GET['search']) ||
+        isset($_GET['status']) ||
+        isset($_GET['month']) ||
+        isset($_GET['year'])
 ) {
     $_SESSION['cmd_search'] = trim($_GET['search'] ?? '');
     $_SESSION['cmd_status'] = trim($_GET['status'] ?? '');
 
-    $month = (isset($_GET['month']) && $_GET['month'] !== '') ? (int)$_GET['month'] : null;
-    $year = (isset($_GET['year']) && $_GET['year'] !== '') ? (int)$_GET['year'] : null;
+    $month = (isset($_GET['month']) && $_GET['month'] !== '') ? (int) $_GET['month'] : null;
+    $year = (isset($_GET['year']) && $_GET['year'] !== '') ? (int) $_GET['year'] : null;
 
     $_SESSION['cmd_month'] = $month;
     $_SESSION['cmd_year'] = $year;
@@ -259,8 +256,8 @@ if (
         $_SESSION['cmd_date_end'] = '';
     }
 } elseif (!array_key_exists('cmd_date_start', $_SESSION)) {
-    $_SESSION['cmd_month'] = (int)date('n');
-    $_SESSION['cmd_year'] = (int)date('Y');
+    $_SESSION['cmd_month'] = (int) date('n');
+    $_SESSION['cmd_year'] = (int) date('Y');
     $_SESSION['cmd_date_start'] = date('Y-m-01');
     $_SESSION['cmd_date_end'] = date('Y-m-t');
 }
@@ -270,15 +267,14 @@ $search = $_SESSION['cmd_search'] ?? '';
 $status_filter = $_SESSION['cmd_status'] ?? '';
 $date_start = $_SESSION['cmd_date_start'] ?? '';
 $date_end = $_SESSION['cmd_date_end'] ?? '';
-$selected_month = $_SESSION['cmd_month'] ?? (int)date('n');
-$selected_year = $_SESSION['cmd_year'] ?? (int)date('Y');
-
+$selected_month = $_SESSION['cmd_month'] ?? (int) date('n');
+$selected_year = $_SESSION['cmd_year'] ?? (int) date('Y');
 
 /*
-|--------------------------------------------------------------------------
-| Управление сортировкой
-|--------------------------------------------------------------------------
-*/
+  |--------------------------------------------------------------------------
+  | Управление сортировкой
+  |--------------------------------------------------------------------------
+ */
 if (isset($_GET['sort_col'])) {
     $requested_col = $_GET['sort_col'];
 
@@ -293,12 +289,11 @@ if (isset($_GET['sort_col'])) {
 $sort_col = $_SESSION['cmd_sort_col'] ?? 'date_commande';
 $sort_dir = $_SESSION['cmd_sort_dir'] ?? 'ASC';
 
-
 /*
-|--------------------------------------------------------------------------
-| Динамические колонки
-|--------------------------------------------------------------------------
-*/
+  |--------------------------------------------------------------------------
+  | Динамические колонки
+  |--------------------------------------------------------------------------
+ */
 $platCols = $pdo->query("SHOW COLUMNS FROM platforms")->fetchAll(PDO::FETCH_COLUMN);
 $platColName = in_array('nom', $platCols) ? 'nom' : (in_array('name', $platCols) ? 'name' : $platCols[1]);
 $platNameCol = "p.`$platColName`";
@@ -307,12 +302,11 @@ $pmCols = $pdo->query("SHOW COLUMNS FROM modes_de_paiement")->fetchAll(PDO::FETC
 $pmColName = in_array('nom', $pmCols) ? 'nom' : (in_array('name', $pmCols) ? 'name' : $pmCols[1]);
 $pmNameCol = "pm.`$pmColName`";
 
-
 /*
-|--------------------------------------------------------------------------
-| SQL запрос
-|--------------------------------------------------------------------------
-*/
+  |--------------------------------------------------------------------------
+  | SQL запрос
+  |--------------------------------------------------------------------------
+ */
 $sql = "
     SELECT
         c.*,
@@ -368,14 +362,14 @@ if (!empty($date_end)) {
 }
 
 $allowed_sorts = [
-        'id_commande'         => 'c.id_commande',
-        'date_commande'       => 'c.date_commande',
-        'client_name'         => 'client_name',
-        'platform_name'       => 'platform_name',
-        'facture_number'      => 'f.facture_number',
-        'payment_method_name' => 'payment_method_name',
-        'montant'             => 'c.montant',
-        'statut'              => 'c.statut'
+    'id_commande' => 'c.id_commande',
+    'date_commande' => 'c.date_commande',
+    'client_name' => 'client_name',
+    'platform_name' => 'platform_name',
+    'facture_number' => 'f.facture_number',
+    'payment_method_name' => 'payment_method_name',
+    'montant' => 'c.montant',
+    'statut' => 'c.statut'
 ];
 
 $sql_sort_field = $allowed_sorts[$sort_col] ?? 'c.date_commande';
@@ -397,12 +391,12 @@ try {
 
 
 /*
-|--------------------------------------------------------------------------
-| Итоги
-|--------------------------------------------------------------------------
-*/
+  |--------------------------------------------------------------------------
+  | Итоги
+  |--------------------------------------------------------------------------
+ */
 $total_montant = 0;
-$total_impot   = 0;
+$total_impot = 0;
 $total_epargne = 0;
 
 foreach ($commandes as $order) {
@@ -413,24 +407,25 @@ foreach ($commandes as $order) {
         continue;
     }
 
-    $m = (float)($order['montant'] ?? 0);
+    $m = (float) ($order['montant'] ?? 0);
     $total_montant += $m;
 
-    $impVal = (float)($order['calcul_impot'] ?? 0);
+    $impVal = (float) ($order['calcul_impot'] ?? 0);
     $impAmount = ($impVal == 1) ? ($m * 0.212) : $impVal;
     $total_impot += $impAmount;
 
-    $epVal = (float)($order['calcul_epargne'] ?? 0);
+    $epVal = (float) ($order['calcul_epargne'] ?? 0);
     $epAmount = ($epVal == 1) ? ($m * 0.10) : $epVal;
     $total_epargne += $epAmount;
 }
 
 
 /*
-|--------------------------------------------------------------------------
-| Функция заголовка таблицы
-|--------------------------------------------------------------------------
-*/
+  |--------------------------------------------------------------------------
+  | Функция заголовка таблицы
+  |--------------------------------------------------------------------------
+ */
+
 function renderTh($colKey, $label, $alignClass = '') {
     global $sort_col, $sort_dir;
     $icon = '';
@@ -452,46 +447,91 @@ require_once 'header.php';
 ?>
 
 <title>Liste des commandes — NumériqueAide</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
 
 <style>
-    .order-divider { border-bottom: 3px solid #94a3b8 !important; }
-    .note-comment { background-color: #d9f2df; }
-    .note-info { background-color: #fdf3cf; }
-    .order-group-even { background-color: #f8f9fb !important; }
-    .order-group-odd { background-color: #ffffff !important; }
-    
-    tr.row-status-en-cours, tr.row-status-en-cours > td { background-color: #fffad6 !important; }
-    tr.row-status-annulee, tr.row-status-annulee > td { background-color: #fee3e3 !important; }
-    tr.row-status-paye, tr.row-status-paye > td { background-color: #e1e7eb !important; }
-
-    .table-header-custom th, .table-header-custom td { 
-        background-color: #82e89e !important; 
-        color: #020202 !important; 
+    .order-divider {
+        border-bottom: 3px solid #94a3b8 !important;
     }
-    .table-header-custom th a { color: #020202 !important; }
+    .note-comment {
+        background-color: #d9f2df;
+    }
+    .note-info {
+        background-color: #fdf3cf;
+    }
+    .order-group-even {
+        background-color: #f8f9fb !important;
+    }
+    .order-group-odd {
+        background-color: #ffffff !important;
+    }
 
-    .totals-badge { background-color: #000000 !important; color: #ffffff !important; font-weight: bold !important; white-space: nowrap !important; padding: 2px 8px; border-radius: 4px; display: inline-block; }
-    .rdv-time-badge { background-color: #e2e8f0; color: #1e293b; padding: 2px 6px; border-radius: 4px; font-weight: 600; display: inline-block; }
-    
-    #bulkActionButtons { 
-        position: sticky; 
-        top: 55px; 
-        z-index: 1050; 
-        background-color: transparent; 
+    tr.row-status-en-cours, tr.row-status-en-cours > td {
+        background-color: #fffad6 !important;
+    }
+    tr.row-status-annulee, tr.row-status-annulee > td {
+        background-color: #fee3e3 !important;
+    }
+    tr.row-status-paye, tr.row-status-paye > td {
+        background-color: #e1e7eb !important;
+    }
+
+    .table-header-custom th, .table-header-custom td {
+        background-color: #82e89e !important;
+        color: #020202 !important;
+    }
+    .table-header-custom th a {
+        color: #020202 !important;
+    }
+
+    .totals-badge {
+        background-color: #000000 !important;
+        color: #ffffff !important;
+        font-weight: bold !important;
+        white-space: nowrap !important;
+        padding: 2px 8px;
+        border-radius: 4px;
+        display: inline-block;
+    }
+    .rdv-time-badge {
+        background-color: #e2e8f0;
+        color: #1e293b;
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-weight: 600;
+        display: inline-block;
+    }
+
+    #bulkActionButtons {
+        position: sticky;
+        top: 55px;
+        z-index: 1050;
+        background-color: transparent;
         padding: 8px 0;
         margin-bottom: 10px;
     }
-    
-    .actions-column { display: none; }
-    
-    tr.row-selected, tr.row-selected > td { background-color: #eef7ff !important; }
-    .order-actions .btn { min-width: 30px; padding: 1px 6px; }
-    body { background-color: #d3d1d1 !important; }
-    
+
+    .actions-column {
+        display: none;
+    }
+
+    tr.row-selected, tr.row-selected > td {
+        background-color: #eef7ff !important;
+    }
+    .order-actions .btn {
+        min-width: 30px;
+        padding: 1px 6px;
+    }
+    body {
+        background-color: #d3d1d1 !important;
+    }
+
     tr.row-just-saved > td {
-    background-color: #fff3a0 !important;
-    transition: background-color .5s;
-}
+        background-color: #fff3a0 !important;
+        transition: background-color .5s;
+    }
+    
+    .flatpickr-calendar { z-index: 99999 !important; }
 </style>
 
 <div class="container-fluid mt-4 px-4">
@@ -499,34 +539,34 @@ require_once 'header.php';
         <h3 class="mb-0"><i class="bi bi-cart-check me-2"></i>Liste des commandes</h3>
     </div>
 
-    <?php if (isset($_GET['deleted'])): ?>
+<?php if (isset($_GET['deleted'])): ?>
         <div class="alert alert-warning alert-dismissible fade show" role="alert">
-            <?php if ($_GET['deleted'] === 'multi'): ?>
+    <?php if ($_GET['deleted'] === 'multi'): ?>
                 Sélection de commandes supprimée avec succès!
-            <?php else: ?>
+        <?php else: ?>
                 La commande a été supprimée avec succès!
             <?php endif; ?>
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
-    <?php endif; ?>
+        <?php endif; ?>
 
-    <?php if (isset($_GET['added'])): ?>
+        <?php if (isset($_GET['added'])): ?>
         <div class="alert alert-success alert-dismissible fade show" role="alert">
             La commande a été ajoutée avec succès!
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
     <?php endif; ?>
 
-    <?php if (isset($_GET['copied'])): ?>
+<?php if (isset($_GET['copied'])): ?>
         <div class="alert alert-success alert-dismissible fade show" role="alert">
             La commande a été copiée avec succès!
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
     <?php endif; ?>
 
-    <?php if (isset($error_message)): ?>
+<?php if (isset($error_message)): ?>
         <div class="alert alert-danger alert-dismissible fade show" role="alert">
-            <?= htmlspecialchars($error_message); ?>
+        <?= htmlspecialchars($error_message); ?>
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
     <?php endif; ?>
@@ -543,16 +583,16 @@ require_once 'header.php';
                     <label class="form-label small text-muted mb-1" for="month-select">Mois</label>
                     <select id="month-select" name="month" class="form-select">
                         <option value="">Tout</option>
-                        <?php
-                        $monthNames = [
-                                1 => 'Janvier', 2 => 'Février', 3 => 'Mars', 4 => 'Avril',
-                                5 => 'Mai', 6 => 'Juin', 7 => 'Juillet', 8 => 'Août',
-                                9 => 'Septembre', 10 => 'Octobre', 11 => 'Novembre', 12 => 'Décembre'
-                        ];
-                        foreach ($monthNames as $mNum => $mName):
-                            ?>
-                            <option value="<?= $mNum; ?>" <?= ((int)$selected_month === $mNum) ? 'selected' : ''; ?>>
-                                <?= $mName; ?>
+<?php
+$monthNames = [
+    1 => 'Janvier', 2 => 'Février', 3 => 'Mars', 4 => 'Avril',
+    5 => 'Mai', 6 => 'Juin', 7 => 'Juillet', 8 => 'Août',
+    9 => 'Septembre', 10 => 'Octobre', 11 => 'Novembre', 12 => 'Décembre'
+];
+foreach ($monthNames as $mNum => $mName):
+    ?>
+                            <option value="<?= $mNum; ?>" <?= ((int) $selected_month === $mNum) ? 'selected' : ''; ?>>
+                            <?= $mName; ?>
                             </option>
                         <?php endforeach; ?>
                     </select>
@@ -562,12 +602,12 @@ require_once 'header.php';
                     <label class="form-label small text-muted mb-1" for="year-select">Année</label>
                     <select id="year-select" name="year" class="form-select">
                         <option value="">Все</option>
-                        <?php
-                        $currentYear = (int)date('Y');
-                        for ($y = $currentYear - 2; $y <= $currentYear + 1; $y++):
-                            ?>
-                            <option value="<?= $y; ?>" <?= ((int)$selected_year === $y) ? 'selected' : ''; ?>>
-                                <?= $y; ?>
+<?php
+$currentYear = (int) date('Y');
+for ($y = $currentYear - 2; $y <= $currentYear + 1; $y++):
+    ?>
+                            <option value="<?= $y; ?>" <?= ((int) $selected_year === $y) ? 'selected' : ''; ?>>
+                            <?= $y; ?>
                             </option>
                         <?php endfor; ?>
                     </select>
@@ -614,230 +654,230 @@ require_once 'header.php';
                 <div class="table-responsive">
                     <table class="table table-hover align-middle mb-0" style="min-width: 1200px;">
                         <thead class="table-header-custom">
-                        <tr>
-                            <th style="width: 50px;" class="text-center">
-                                <input type="checkbox" class="form-check-input" id="selectAll" aria-label="Tout sélectionner">
-                            </th>
-                            <th style="width: 90px;" class="text-center actions-column" id="actionsHeader">Actions</th>
-                            <?php renderTh('id_commande', '№ de сommande', 'text-nowrap'); ?>
-                            <?php renderTh('date_commande', 'Date', 'text-nowrap'); ?>
-                            <?php renderTh('client_name', 'Client', 'text-nowrap'); ?>
-                            <?php renderTh('platform_name', 'Plateforme', 'text-nowrap'); ?>
-                            <?php renderTh('facture_number', 'Facture', 'text-nowrap'); ?>
-                            <?php renderTh('payment_method_name', 'Paiement', 'text-nowrap'); ?>
-                            <?php renderTh('montant', 'Montant', 'text-end text-nowrap'); ?>
-                            <th style="width: 150px;" class="text-center">Taxe</th>
-                            <th style="width: 150px;" class="text-center">Cumul</th>
-                            <?php renderTh('statut', 'Statut', 'text-center text-nowrap'); ?>
-                        </tr>
+                            <tr>
+                                <th style="width: 50px;" class="text-center">
+                                    <input type="checkbox" class="form-check-input" id="selectAll" aria-label="Tout sélectionner">
+                                </th>
+                                <th style="width: 90px;" class="text-center actions-column" id="actionsHeader">Actions</th>
+<?php renderTh('id_commande', '№ de сommande', 'text-nowrap'); ?>
+<?php renderTh('date_commande', 'Date', 'text-nowrap'); ?>
+<?php renderTh('client_name', 'Client', 'text-nowrap'); ?>
+<?php renderTh('platform_name', 'Plateforme', 'text-nowrap'); ?>
+                                <?php renderTh('facture_number', 'Facture', 'text-nowrap'); ?>
+                                <?php renderTh('payment_method_name', 'Paiement', 'text-nowrap'); ?>
+                                <?php renderTh('montant', 'Montant', 'text-end text-nowrap'); ?>
+                                <th style="width: 150px;" class="text-center">Taxe</th>
+                                <th style="width: 150px;" class="text-center">Cumul</th>
+                                <?php renderTh('statut', 'Statut', 'text-center text-nowrap'); ?>
+                            </tr>
                         </thead>
                         <tbody>
-                        <?php if (empty($commandes)): ?>
-                            <tr>
-                                <td colspan="12" class="text-center py-4 text-muted">Aucune commande trouvée</td>
-                            </tr>
-                        <?php else: ?>
-                            <?php
-                            $rowIndex = 0;
-                            foreach ($commandes as $order):
-                                $rowIndex++;
-                                $montant = (float)($order['montant'] ?? 0);
-                                $impotVal = (float)($order['calcul_impot'] ?? 0);
-                                $impotAmount = ($impotVal == 1) ? ($montant * 0.212) : $impotVal;
-                                $epargneVal = (float)($order['calcul_epargne'] ?? 0);
-                                $epargneAmount = ($epargneVal == 1) ? ($montant * 0.10) : $epargneVal;
-                                $platformName = trim($order['platform_name'] ?? 'Privé');
-                                $platBadgeClass = 'bg-danger';
+                                <?php if (empty($commandes)): ?>
+                                <tr>
+                                    <td colspan="12" class="text-center py-4 text-muted">Aucune commande trouvée</td>
+                                </tr>
+                            <?php else: ?>
+                                <?php
+                                $rowIndex = 0;
+                                foreach ($commandes as $order):
+                                    $rowIndex++;
+                                    $montant = (float) ($order['montant'] ?? 0);
+                                    $impotVal = (float) ($order['calcul_impot'] ?? 0);
+                                    $impotAmount = ($impotVal == 1) ? ($montant * 0.212) : $impotVal;
+                                    $epargneVal = (float) ($order['calcul_epargne'] ?? 0);
+                                    $epargneAmount = ($epargneVal == 1) ? ($montant * 0.10) : $epargneVal;
+                                    $platformName = trim($order['platform_name'] ?? 'Privé');
+                                    $platBadgeClass = 'bg-danger';
 
-                                if (strcasecmp($platformName, 'Yoojo') === 0) {
-                                    $platBadgeClass = 'bg-primary';
-                                } elseif (strcasecmp($platformName, 'NeedHelp') === 0) {
-                                    $platBadgeClass = 'bg-success';
-                                }
+                                    if (strcasecmp($platformName, 'Yoojo') === 0) {
+                                        $platBadgeClass = 'bg-primary';
+                                    } elseif (strcasecmp($platformName, 'NeedHelp') === 0) {
+                                        $platBadgeClass = 'bg-success';
+                                    }
 
-                                $statusRaw = trim($order['statut'] ?? '');
-                                $statusBadge = 'bg-secondary';
-                                $statusLabel = $statusRaw;
-                                $isCancelled = false;
-                                $rowStatusClass = ($rowIndex % 2 === 0) ? 'order-group-even' : 'order-group-odd';
+                                    $statusRaw = trim($order['statut'] ?? '');
+                                    $statusBadge = 'bg-secondary';
+                                    $statusLabel = $statusRaw;
+                                    $isCancelled = false;
+                                    $rowStatusClass = ($rowIndex % 2 === 0) ? 'order-group-even' : 'order-group-odd';
 
-                                switch (mb_strtolower($statusRaw)) {
-                                    case 'prévu':
-                                    case 'prevu':
-                                    case 'запланирован':
-                                        $statusBadge = 'bg-success';
-                                        $statusLabel = 'Prévu';
-                                        break;
-                                    case 'en cours':
-                                    case 'en_cours':
-                                    case 'в работе':
-                                        $statusBadge = 'bg-warning text-dark';
-                                        $statusLabel = 'En cours';
-                                        $rowStatusClass = 'row-status-en-cours';
-                                        break;
-                                    case 'payé':
-                                    case 'paye':
-                                    case 'terminee':
-                                    case 'оплачен':
-                                        $statusBadge = 'bg-secondary';
-                                        $statusLabel = 'Payé';
-                                        $rowStatusClass = 'row-status-paye';
-                                        break;
-                                    case 'annulee':
-                                    case 'annulée':
-                                    case 'отменен':
-                                        $isCancelled = true;
-                                        $statusLabel = 'Annulée';
-                                        $rowStatusClass = 'row-status-annulee';
-                                        break;
-                                }
+                                    switch (mb_strtolower($statusRaw)) {
+                                        case 'prévu':
+                                        case 'prevu':
+                                        case 'запланирован':
+                                            $statusBadge = 'bg-success';
+                                            $statusLabel = 'Prévu';
+                                            break;
+                                        case 'en cours':
+                                        case 'en_cours':
+                                        case 'в работе':
+                                            $statusBadge = 'bg-warning text-dark';
+                                            $statusLabel = 'En cours';
+                                            $rowStatusClass = 'row-status-en-cours';
+                                            break;
+                                        case 'payé':
+                                        case 'paye':
+                                        case 'terminee':
+                                        case 'оплачен':
+                                            $statusBadge = 'bg-secondary';
+                                            $statusLabel = 'Payé';
+                                            $rowStatusClass = 'row-status-paye';
+                                            break;
+                                        case 'annulee':
+                                        case 'annulée':
+                                        case 'отменен':
+                                            $isCancelled = true;
+                                            $statusLabel = 'Annulée';
+                                            $rowStatusClass = 'row-status-annulee';
+                                            break;
+                                    }
 
-                                if ($isCancelled) {
-                                    $montant = 0;
-                                    $impotAmount = 0;
-                                    $epargneAmount = 0;
-                                }
+                                    if ($isCancelled) {
+                                        $montant = 0;
+                                        $impotAmount = 0;
+                                        $epargneAmount = 0;
+                                    }
 
-                                $hasNotes = !empty($order['notes']) || !empty($order['commentaire']);
-                                ?>
-                                <tr id="order-<?= (int)$order['id']; ?>" class="<?= $rowStatusClass; ?>">
-                                    <td class="text-center">
-                                        <input type="checkbox" name="delete_ids[]" value="<?= (int)$order['id']; ?>" class="form-check-input order-checkbox" aria-label="Sélectionner la commande">
-                                    </td>
-                                    <td class="text-center text-nowrap actions-column">
-                                        <button type="button" class="btn btn-sm btn-outline-primary me-1" onclick="openCommandeModal('edit_commande.php?id=<?= (int)$order['id']; ?>&modal=1', 'Modifier la commande', 'bg-primary')" title="Редактировать">
-                                            <i class="bi bi-pencil"></i>
-                                        </button>
-                                        <a href="commandes_list.php?delete_id=<?= (int)$order['id']; ?>" class="btn btn-sm btn-outline-danger" onclick="return confirm('Êtes-vous sûr de vouloir supprimer cette commande?');" title="Удалить">
-                                            <i class="bi bi-trash"></i>
-                                        </a>
-                                    </td>
-                                    <td class="fw-bold text-nowrap"><?= htmlspecialchars($order['id_commande']); ?></td>
-                                    <td class="text-nowrap">
-                                        <?= date('d.m.Y', strtotime($order['date_commande'])); ?>
-                                        <?php if (!empty($order['rdv_time'])): ?>
-                                            <br><small class="text-muted"><span class="rdv-time-badge mt-1"><i class="bi bi-clock me-1"></i><?= substr($order['rdv_time'], 0, 5); ?></span></small>
-                                        <?php endif; ?>
-                                    </td>
-                                    <td class="fw-semibold">
-                                        <?php if (!empty(trim($order['client_name']))): ?>
-                                            <a href="#" onclick="openClientModal('edit_client.php?id=<?= (int)$order['client_id']; ?>&modal=1', 'Modifier le client', 'bg-primary'); return false;" class="text-decoration-none text-dark" title="Modifier le client">
-                                                <?= htmlspecialchars(trim($order['client_name'])); ?>
+                                    $hasNotes = !empty($order['notes']) || !empty($order['commentaire']);
+                                    ?>
+                                    <tr id="order-<?= (int) $order['id']; ?>" class="<?= $rowStatusClass; ?>">
+                                        <td class="text-center">
+                                            <input type="checkbox" name="delete_ids[]" value="<?= (int) $order['id']; ?>" class="form-check-input order-checkbox" aria-label="Sélectionner la commande">
+                                        </td>
+                                        <td class="text-center text-nowrap actions-column">
+                                            <button type="button" class="btn btn-sm btn-outline-primary me-1" onclick="openCommandeModal('edit_commande.php?id=<?= (int) $order['id']; ?>&modal=1', 'Modifier la commande', 'bg-primary')" title="Редактировать">
+                                                <i class="bi bi-pencil"></i>
+                                            </button>
+                                            <a href="commandes_list.php?delete_id=<?= (int) $order['id']; ?>" class="btn btn-sm btn-outline-danger" onclick="return confirm('Êtes-vous sûr de vouloir supprimer cette commande?');" title="Удалить">
+                                                <i class="bi bi-trash"></i>
                                             </a>
-                                        <?php else: ?>
-                                            <span class="text-muted">—</span>
-                                        <?php endif; ?>
+                                        </td>
+                                        <td class="fw-bold text-nowrap"><?= htmlspecialchars($order['id_commande']); ?></td>
+                                        <td class="text-nowrap">
+        <?= date('d.m.Y', strtotime($order['date_commande'])); ?>
+        <?php if (!empty($order['rdv_time'])): ?>
+                                                <br><small class="text-muted"><span class="rdv-time-badge mt-1"><i class="bi bi-clock me-1"></i><?= substr($order['rdv_time'], 0, 5); ?></span></small>
+        <?php endif; ?>
+                                        </td>
+                                        <td class="fw-semibold">
+                                            <?php if (!empty(trim($order['client_name']))): ?>
+                                                <a href="#" onclick="openClientModal('edit_client.php?id=<?= (int) $order['client_id']; ?>&modal=1', 'Modifier le client', 'bg-primary'); return false;" class="text-decoration-none text-dark" title="Modifier le client">
+                                                <?= htmlspecialchars(trim($order['client_name'])); ?>
+                                                </a>
+                                            <?php else: ?>
+                                                <span class="text-muted">—</span>
+                                                <?php endif; ?>
 
-                                        <?php if (!empty(trim($order['client_notes'] ?? ''))): ?>
-                                            <i class="bi bi-exclamation-circle-fill text-danger ms-1" style="cursor: pointer;" title="Client note: <?= htmlspecialchars($order['client_notes']); ?>"></i>
-                                        <?php endif; ?>
+                                            <?php if (!empty(trim($order['client_notes'] ?? ''))): ?>
+                                                <i class="bi bi-exclamation-circle-fill text-danger ms-1" style="cursor: pointer;" title="Client note: <?= htmlspecialchars($order['client_notes']); ?>"></i>
+                                            <?php endif; ?>
 
-                                        <?php if (!empty($order['client_telephone']) || !empty($order['client_adresse'])): ?>
-                                            <div class="small text-muted fw-normal mt-1">
+                                            <?php if (!empty($order['client_telephone']) || !empty($order['client_adresse'])): ?>
+                                                <div class="small text-muted fw-normal mt-1">
                                                 <?php if (!empty($order['client_telephone'])): ?>
-                                                    <div>
-                                                        <i class="bi bi-telephone me-1 text-primary"></i>
-                                                        <a href="tel:<?= htmlspecialchars($order['client_telephone']); ?>" class="text-decoration-none text-muted">
-                                                            <?= htmlspecialchars($order['client_telephone']); ?>
-                                                        </a>
-                                                    </div>
+                                                        <div>
+                                                            <i class="bi bi-telephone me-1 text-primary"></i>
+                                                            <a href="tel:<?= htmlspecialchars($order['client_telephone']); ?>" class="text-decoration-none text-muted">
+                                                        <?= htmlspecialchars($order['client_telephone']); ?>
+                                                            </a>
+                                                        </div>
+            <?php endif; ?>
+                                                            <?php if (!empty($order['client_adresse'])): ?>
+                                                        <div>
+                                                            <i class="bi bi-geo-alt me-1 text-danger"></i>
+                                                            <a href="https://www.google.com/maps/search/?api=1&query=<?= urlencode($order['client_adresse']); ?>" target="_blank" class="text-decoration-none text-muted">
+                                                        <?= htmlspecialchars($order['client_adresse']); ?>
+                                                            </a>
+                                                        </div>
+            <?php endif; ?>
+                                                </div>
+                                                        <?php endif; ?>
+                                        </td>
+                                        <td><span class="badge <?= $platBadgeClass; ?>"><?= htmlspecialchars($platformName); ?></span></td>
+                                        <td><?= !empty($order['facture_number']) ? htmlspecialchars($order['facture_number']) : '<span class="text-muted">—</span>'; ?></td>
+                                        <td><?= !empty($order['payment_method_name']) ? htmlspecialchars($order['payment_method_name']) : '<span class="text-muted">—</span>'; ?></td>
+                                        <td class="text-end fw-bold"><?= number_format($montant, 2, ',', ' '); ?> €</td>
+                                        <td class="text-center text-nowrap">
+        <?php if ($impotAmount > 0): ?>
+            <?php if (!empty($order['impot_paye'])): ?>
+                                                    <span class="badge bg-success" title="Налог оплачен">
+                                                        <i class="bi bi-check-all me-1"></i><?= number_format($impotAmount, 2, ',', ' '); ?> €
+                                                    </span>
+                                                <?php else: ?>
+                                                    <span class="text-primary fw-semibold" title="Налог не оплачен">
+                                                        <i class="bi bi-clock me-1"></i><?= number_format($impotAmount, 2, ',', ' '); ?> €
+                                                    </span>
                                                 <?php endif; ?>
-                                                <?php if (!empty($order['client_adresse'])): ?>
-                                                    <div>
-                                                        <i class="bi bi-geo-alt me-1 text-danger"></i>
-                                                        <a href="https://www.google.com/maps/search/?api=1&query=<?= urlencode($order['client_adresse']); ?>" target="_blank" class="text-decoration-none text-muted">
-                                                            <?= htmlspecialchars($order['client_adresse']); ?>
-                                                        </a>
-                                                    </div>
+                                            <?php else: ?>
+                                                <span class="text-muted">0,00 €</span>
+        <?php endif; ?>
+                                        </td>
+                                        <td class="text-center text-nowrap">
+                                            <?php if ($epargneAmount > 0): ?>
+                                                <?php if (!empty($order['epargne_paye'])): ?>
+                                                    <span class="badge bg-success" title="Накопления переведены">
+                                                        <i class="bi bi-check-all me-1"></i><?= number_format($epargneAmount, 2, ',', ' '); ?> €
+                                                    </span>
+                                                <?php else: ?>
+                                                    <span class="text-primary fw-semibold" title="Накопления не переведены">
+                                                        <i class="bi bi-clock me-1"></i><?= number_format($epargneAmount, 2, ',', ' '); ?> €
+                                                    </span>
                                                 <?php endif; ?>
-                                            </div>
-                                        <?php endif; ?>
-                                    </td>
-                                    <td><span class="badge <?= $platBadgeClass; ?>"><?= htmlspecialchars($platformName); ?></span></td>
-                                    <td><?= !empty($order['facture_number']) ? htmlspecialchars($order['facture_number']) : '<span class="text-muted">—</span>'; ?></td>
-                                    <td><?= !empty($order['payment_method_name']) ? htmlspecialchars($order['payment_method_name']) : '<span class="text-muted">—</span>'; ?></td>
-                                    <td class="text-end fw-bold"><?= number_format($montant, 2, ',', ' '); ?> €</td>
-                                    <td class="text-center text-nowrap">
-                                        <?php if ($impotAmount > 0): ?>
-                                            <?php if (!empty($order['impot_paye'])): ?>
-                                                <span class="badge bg-success" title="Налог оплачен">
-                                                    <i class="bi bi-check-all me-1"></i><?= number_format($impotAmount, 2, ',', ' '); ?> €
-                                                </span>
                                             <?php else: ?>
-                                                <span class="text-primary fw-semibold" title="Налог не оплачен">
-                                                    <i class="bi bi-clock me-1"></i><?= number_format($impotAmount, 2, ',', ' '); ?> €
-                                                </span>
-                                            <?php endif; ?>
-                                        <?php else: ?>
-                                            <span class="text-muted">0,00 €</span>
-                                        <?php endif; ?>
-                                    </td>
-                                    <td class="text-center text-nowrap">
-                                        <?php if ($epargneAmount > 0): ?>
-                                            <?php if (!empty($order['epargne_paye'])): ?>
-                                                <span class="badge bg-success" title="Накопления переведены">
-                                                    <i class="bi bi-check-all me-1"></i><?= number_format($epargneAmount, 2, ',', ' '); ?> €
-                                                </span>
-                                            <?php else: ?>
-                                                <span class="text-primary fw-semibold" title="Накопления не переведены">
-                                                    <i class="bi bi-clock me-1"></i><?= number_format($epargneAmount, 2, ',', ' '); ?> €
-                                                </span>
-                                            <?php endif; ?>
-                                        <?php else: ?>
-                                            <span class="text-muted">0,00 €</span>
-                                        <?php endif; ?>
-                                    </td>
-                                    <td class="text-center">
-                                        <span class="badge <?= $isCancelled ? 'bg-danger' : $statusBadge; ?>">
+                                                <span class="text-muted">0,00 €</span>
+        <?php endif; ?>
+                                        </td>
+                                        <td class="text-center">
+                                            <span class="badge <?= $isCancelled ? 'bg-danger' : $statusBadge; ?>">
                                             <?= htmlspecialchars($statusLabel); ?>
-                                        </span>
-                                        <?php if (!empty($order['date_paiement'])): ?>
-                                            <div class="small text-success mt-1 text-nowrap">
-                                                <i class="bi bi-calendar-check me-1"></i><?= date('d.m.Y', strtotime($order['date_paiement'])); ?>
-                                            </div>
-                                        <?php endif; ?>
-                                    </td>
-                                </tr>
+                                            </span>
+        <?php if (!empty($order['date_paiement'])): ?>
+                                                <div class="small text-success mt-1 text-nowrap">
+                                                    <i class="bi bi-calendar-check me-1"></i><?= date('d.m.Y', strtotime($order['date_paiement'])); ?>
+                                                </div>
+                                            <?php endif; ?>
+                                        </td>
+                                    </tr>
 
-                                <tr class="order-divider <?= $rowStatusClass; ?>">
-                                    <td colspan="12" class="pt-0 pb-2 ps-4 small" style="color: #2b2b2b; <?= !$hasNotes ? 'display: none;' : ''; ?>">
-                                        <?php if (!empty($order['commentaire'])): ?>
-                                            <span class="note-comment me-2 d-inline-block px-2 py-1 rounded">
-                                                <i class="bi bi-chat-left-text text-primary me-1"></i>
-                                                <strong class="text-dark">Commentaire:</strong>
+                                    <tr class="order-divider <?= $rowStatusClass; ?>">
+                                        <td colspan="12" class="pt-0 pb-2 ps-4 small" style="color: #2b2b2b; <?= !$hasNotes ? 'display: none;' : ''; ?>">
+        <?php if (!empty($order['commentaire'])): ?>
+                                                <span class="note-comment me-2 d-inline-block px-2 py-1 rounded">
+                                                    <i class="bi bi-chat-left-text text-primary me-1"></i>
+                                                    <strong class="text-dark">Commentaire:</strong>
                                                 <?= htmlspecialchars($order['commentaire']); ?>
-                                            </span>
-                                        <?php endif; ?>
-                                        <?php if (!empty($order['notes'])): ?>
-                                            <span class="note-info d-inline-block px-2 py-1 rounded">
-                                                <i class="bi bi-journal-text text-success me-1"></i>
-                                                <strong class="text-dark">Notes:</strong>
+                                                </span>
+        <?php endif; ?>
+        <?php if (!empty($order['notes'])): ?>
+                                                <span class="note-info d-inline-block px-2 py-1 rounded">
+                                                    <i class="bi bi-journal-text text-success me-1"></i>
+                                                    <strong class="text-dark">Notes:</strong>
                                                 <?= htmlspecialchars($order['notes']); ?>
-                                            </span>
-                                        <?php endif; ?>
-                                    </td>
-                                </tr>
-                            <?php endforeach; ?>
-                        <?php endif; ?>
+                                                </span>
+        <?php endif; ?>
+                                        </td>
+                                    </tr>
+                                            <?php endforeach; ?>
+                                    <?php endif; ?>
                         </tbody>
 
-                        <?php if (!empty($commandes)): ?>
+                            <?php if (!empty($commandes)): ?>
                             <tfoot class="table-header-custom">
-                            <tr class="totals-row">
-                                <td colspan="7" class="text-end">Total:</td>
-                                <td class="text-end fs-6">
-                                    <span class="totals-badge"><?= number_format($total_montant, 2, ',', ' '); ?> €</span>
-                                </td>
-                                <td class="text-center">
-                                    <span class="totals-badge"><?= number_format($total_impot, 2, ',', ' '); ?> €</span>
-                                </td>
-                                <td class="text-center">
-                                    <span class="totals-badge"><?= number_format($total_epargne, 2, ',', ' '); ?> €</span>
-                                </td>
-                                <td colspan="2"></td>
-                            </tr>
+                                <tr class="totals-row">
+                                    <td colspan="7" class="text-end">Total:</td>
+                                    <td class="text-end fs-6">
+                                        <span class="totals-badge"><?= number_format($total_montant, 2, ',', ' '); ?> €</span>
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="totals-badge"><?= number_format($total_impot, 2, ',', ' '); ?> €</span>
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="totals-badge"><?= number_format($total_epargne, 2, ',', ' '); ?> €</span>
+                                    </td>
+                                    <td colspan="2"></td>
+                                </tr>
                             </tfoot>
-                        <?php endif; ?>
+<?php endif; ?>
                     </table>
                 </div>
             </div>
@@ -888,6 +928,8 @@ require_once 'header.php';
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/fr.js"></script>
 
 <button type="button" class="btn btn-success btn-lg rounded-circle shadow" id="btn-back-to-bottom" style="position: fixed; bottom: 80px; right: 20px; display: none; z-index: 9999;" title="Прокрутить вниз">
     <i class="bi bi-arrow-down"></i>
@@ -898,292 +940,317 @@ require_once 'header.php';
 </button>
 
 <script>
-    const commandeModal = new bootstrap.Modal(document.getElementById('commandeModal'));
-    const clientModal = new bootstrap.Modal(document.getElementById('clientModal'));
+    function initDatePickers(root) {
+    if (typeof flatpickr === 'undefined') return;
+    root.querySelectorAll('.js-date').forEach(function (el) {
+        flatpickr(el, {
+            locale: 'fr',        // французские месяцы, неделя с понедельника
+            dateFormat: 'Y-m-d', // формат для сервера
+            altInput: true,
+            altFormat: 'd.m.Y'   // формат на экране: 27.09.2026
+        });
+    });
+}
+                                                const commandeModal = new bootstrap.Modal(document.getElementById('commandeModal'));
+                                                const clientModal = new bootstrap.Modal(document.getElementById('clientModal'));
 
-    function openCommandeModal(url, title, headerClass) {
-        document.getElementById('cmdModalTitleText').innerText = title;
-        document.getElementById('cmdModalHeader').className = 'modal-header ' + headerClass + ' text-white';
-        
-        document.getElementById('cmdModalBody').innerHTML = `
-            <div class="text-center py-4">
-                <div class="spinner-border text-success" role="status">
-                    <span class="visually-hidden">Chargement...</span>
-                </div>
+function openCommandeModal(url, title, headerClass) {
+    document.getElementById('cmdModalTitleText').innerText = title;
+    document.getElementById('cmdModalHeader').className = 'modal-header ' + headerClass + ' text-white';
+
+    document.getElementById('cmdModalBody').innerHTML = `
+        <div class="text-center py-4">
+            <div class="spinner-border text-success" role="status">
+                <span class="visually-hidden">Chargement...</span>
             </div>
-        `;
-        
-        commandeModal.show();
+        </div>
+    `;
 
-        fetch(url)
-            .then(response => response.text())
-            .then(html => {
-                const parser = new DOMParser();
-                const doc = parser.parseFromString(html, 'text/html');
-                const content = doc.querySelector('.container, .container-fluid, form') || doc.body;
-                
-                document.getElementById('cmdModalBody').innerHTML = content.outerHTML;
-                
-                const modalForm = document.getElementById('cmdModalBody').querySelector('form');
-                if (modalForm) {
-                    modalForm.addEventListener('submit', function(e) {
-                        e.preventDefault();
-                        const formData = new FormData(modalForm);
-                        
-                        // Гарантируем, что форма отправляется с параметром modal=1
-                        let targetUrl = modalForm.action || url;
-                        if (!targetUrl.includes('modal=1')) {
-                            targetUrl += (targetUrl.includes('?') ? '&' : '?') + 'modal=1';
-                        }
-                        
-                        fetch(targetUrl, {
-                            method: 'POST',
-                            body: formData
-                        })
-                        .then(async res => {
-                            if (res.redirected) {
-                                window.location.href = res.url;
-                            } else {
-                                const responseText = await res.text();
-                                // Если сервер вернул форму с сообщениями об ошибках, показываем их
-                                if (responseText.includes('alert-danger')) {
-                                    const tempDoc = new DOMParser().parseFromString(responseText, 'text/html');
-                                    const newContent = tempDoc.querySelector('.container, .container-fluid, form') || tempDoc.body;
-                                    document.getElementById('cmdModalBody').innerHTML = newContent.outerHTML;
-                                } else {
-                                    window.location.reload();
-                                }
-                            }
-                        })
-                        .catch(err => {
-                            alert('Erreur lors de l\'enregistrement');
-                        });
-                    });
-                }
-            })
-            .catch(error => {
-                document.getElementById('cmdModalBody').innerHTML = '<div class="alert alert-danger">Erreur de chargement du formulaire.</div>';
-            });
-    }
+    commandeModal.show();
 
-    function openClientModal(url, title, headerClass) {
-        document.getElementById('clientModalTitleText').innerText = title;
-        document.getElementById('clientModalHeader').className = 'modal-header ' + headerClass + ' text-white';
-        
-        document.getElementById('clientModalBody').innerHTML = `
-            <div class="text-center py-4">
-                <div class="spinner-border text-success" role="status">
-                    <span class="visually-hidden">Chargement...</span>
-                </div>
-            </div>
-        `;
-        
-        clientModal.show();
+    fetch(url)
+        .then(response => response.text())
+        .then(html => {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            const content = doc.querySelector('.container, .container-fluid, form') || doc.body;
 
-        fetch(url)
-            .then(response => response.text())
-            .then(html => {
-                const parser = new DOMParser();
-                const doc = parser.parseFromString(html, 'text/html');
-                const content = doc.querySelector('.container, .container-fluid, form') || doc.body;
-                
-                document.getElementById('clientModalBody').innerHTML = content.outerHTML;
-                
-                const modalForm = document.getElementById('clientModalBody').querySelector('form');
-                if (modalForm) {
-                    const cleanUrl = url.split('&modal=1')[0].replace('?modal=1', '');
-                    modalForm.action = cleanUrl;
-                    
-                    modalForm.addEventListener('submit', function(e) {
-                        e.preventDefault();
-                        const formData = new FormData(modalForm);
-                        
-                        fetch(cleanUrl, {
-                            method: 'POST',
-                            body: formData
-                        })
-                        .then(res => {
-                            if (res.redirected) {
-                                window.location.href = res.url;
+            document.getElementById('cmdModalBody').innerHTML = content.outerHTML;
+            initDatePickers(document.getElementById('cmdModalBody')); // ← НОВОЕ (место 1)
+
+            const modalForm = document.getElementById('cmdModalBody').querySelector('form');
+            if (modalForm) {
+                modalForm.addEventListener('submit', function(e) {
+                    e.preventDefault();
+
+                    // проверка обязательных полей
+                    if (!modalForm.checkValidity()) {
+                        modalForm.classList.add('was-validated');
+                        const firstInvalid = modalForm.querySelector(':invalid');
+                        if (firstInvalid) firstInvalid.focus();
+                        return;
+                    }
+
+                    const formData = new FormData(modalForm);
+
+                    // Гарантируем, что форма отправляется с параметром modal=1
+                    let targetUrl = modalForm.action || url;
+                    if (!targetUrl.includes('modal=1')) {
+                        targetUrl += (targetUrl.includes('?') ? '&' : '?') + 'modal=1';
+                    }
+
+                    fetch(targetUrl, {
+                        method: 'POST',
+                        body: formData
+                    })
+                    .then(async res => {
+                        if (res.redirected) {
+                            window.location.href = res.url;
+                        } else {
+                            const responseText = await res.text();
+                            // Если сервер вернул форму с ошибками, показываем их
+                            if (responseText.includes('alert-danger')) {
+                                const tempDoc = new DOMParser().parseFromString(responseText, 'text/html');
+                                const newContent = tempDoc.querySelector('.container, .container-fluid, form') || tempDoc.body;
+                                document.getElementById('cmdModalBody').innerHTML = newContent.outerHTML;
+                                initDatePickers(document.getElementById('cmdModalBody')); // ← НОВОЕ (место 2)
                             } else {
                                 window.location.reload();
                             }
-                        })
-                        .catch(err => {
-                            modalForm.submit();
-                        });
+                        }
+                    })
+                    .catch(err => {
+                        alert('Erreur lors de l\'enregistrement');
                     });
-                }
-            })
-            .catch(error => {
-                document.getElementById('clientModalBody').innerHTML = '<div class="alert alert-danger">Erreur de chargement du formulaire.</div>';
-            });
-    }
-
-    // Универсальный обработчик маски телефона для модальных окон
-    document.addEventListener('input', function (e) {
-        if (e.target && e.target.id === 'telephoneInput') {
-            let input = e.target;
-            let digits = input.value.replace(/\D/g, '');
-            
-            if (digits.startsWith('33')) {
-                digits = digits.slice(2);
-            } else if (digits.startsWith('0')) {
-                digits = digits.slice(1);
+                });
             }
-            
-            digits = digits.slice(0, 9);
-
-            let formatted = '+33';
-            if (digits.length > 0) {
-                formatted += ' ' + digits.substring(0, 1);
-            }
-            if (digits.length > 1) {
-                formatted += ' ' + digits.substring(1, 3);
-            }
-            if (digits.length > 3) {
-                formatted += ' ' + digits.substring(3, 5);
-            }
-            if (digits.length > 5) {
-                formatted += ' ' + digits.substring(5, 7);
-            }
-            if (digits.length > 7) {
-                formatted += ' ' + digits.substring(7, 9);
-            }
-            
-            input.value = formatted;
-        }
-    });
-
-    document.addEventListener('focusin', function (e) {
-        if (e.target && e.target.id === 'telephoneInput') {
-            if (!e.target.value || e.target.value.trim() === '' || e.target.value.trim() === '+') {
-                e.target.value = '+33 ';
-            }
-        }
-    });
-
-   document.addEventListener("DOMContentLoaded", function () {
-    const params = new URLSearchParams(window.location.search);
-    let targetId = params.get('scroll');
-
-    // якорь #order-ID тоже поддерживаем (используется при копировании)
-    if (!targetId && window.location.hash.startsWith('#order-')) {
-        targetId = window.location.hash.replace('#order-', '');
-    }
-    if (!targetId) return;
-
-    const row = document.getElementById('order-' + targetId);
-    if (row) {
-        const noteRow = row.nextElementSibling; // строка с заметками
-        row.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        [row, noteRow].forEach(r => r && r.classList.add('row-just-saved'));
-        setTimeout(() => {
-            [row, noteRow].forEach(r => r && r.classList.remove('row-just-saved'));
-        }, 2500);
-    }
-
-    // чистим адрес, чтобы при F5 не прокручивало повторно
-    ['scroll', 'added', 'updated', 'copied'].forEach(p => params.delete(p));
-    const qs = params.toString();
-    history.replaceState(null, '', window.location.pathname + (qs ? '?' + qs : ''));
-});
-
-    setTimeout(function () {
-        const alerts = document.querySelectorAll('.alert');
-        alerts.forEach(function (alertElement) {
-            const alert = new bootstrap.Alert(alertElement);
-            alert.close();
+        })
+        .catch(error => {
+            document.getElementById('cmdModalBody').innerHTML = '<div class="alert alert-danger">Erreur de chargement du formulaire.</div>';
         });
-    }, 5000);
+}
 
-    const selectAllCheckbox = document.getElementById('selectAll');
-    const orderCheckboxes = document.querySelectorAll('.order-checkbox');
-    const bulkDeleteBtn = document.getElementById('bulkDeleteBtn');
-    const bulkCopyBtn = document.getElementById('bulkCopyBtn');
-    const actionsHeader = document.getElementById('actionsHeader');
-    const actionsCells = document.querySelectorAll('.actions-column');
+                                                function openClientModal(url, title, headerClass) {
+                                                    document.getElementById('clientModalTitleText').innerText = title;
+                                                    document.getElementById('clientModalHeader').className = 'modal-header ' + headerClass + ' text-white';
 
-    function updateActionButtonsVisibility() {
-        const checkedCheckboxes = document.querySelectorAll('.order-checkbox:checked');
-        const checkedCount = checkedCheckboxes.length;
+                                                    document.getElementById('clientModalBody').innerHTML = `
+            <div class="text-center py-4">
+                <div class="spinner-border text-success" role="status">
+                    <span class="visually-hidden">Chargement...</span>
+                </div>
+            </div>
+        `;
 
-        if (checkedCount > 0) {
-            bulkDeleteBtn.classList.remove('d-none');
-        } else {
-            bulkDeleteBtn.classList.add('d-none');
-        }
+                                                    clientModal.show();
 
-        if (checkedCount === 1) {
-            bulkCopyBtn.classList.remove('d-none');
-        } else {
-            bulkCopyBtn.classList.add('d-none');
-        }
+                                                    fetch(url)
+                                                            .then(response => response.text())
+                                                            .then(html => {
+                                                                const parser = new DOMParser();
+                                                                const doc = parser.parseFromString(html, 'text/html');
+                                                                const content = doc.querySelector('.container, .container-fluid, form') || doc.body;
 
-        if (checkedCount > 0) {
-            if (actionsHeader) actionsHeader.style.display = 'table-cell';
-            actionsCells.forEach(cell => cell.style.display = 'table-cell');
-        } else {
-            if (actionsHeader) actionsHeader.style.display = 'none';
-            actionsCells.forEach(cell => cell.style.display = 'none');
-        }
+                                                                document.getElementById('clientModalBody').innerHTML = content.outerHTML;
 
-        orderCheckboxes.forEach(function (checkbox) {
-            const mainRow = checkbox.closest('tr');
-            if (checkbox.checked) {
-                mainRow.classList.add('row-selected');
-            } else {
-                mainRow.classList.remove('row-selected');
-            }
-        });
+                                                                const modalForm = document.getElementById('clientModalBody').querySelector('form');
+                                                                if (modalForm) {
+                                                                    const cleanUrl = url.split('&modal=1')[0].replace('?modal=1', '');
+                                                                    modalForm.action = cleanUrl;
 
-        if (selectAllCheckbox && orderCheckboxes.length > 0) {
-            selectAllCheckbox.checked = (checkedCount === orderCheckboxes.length);
-        }
-    }
+                                                                    modalForm.addEventListener('submit', function (e) {
+                                                                        e.preventDefault();
+                                                                        const formData = new FormData(modalForm);
 
-    if (selectAllCheckbox) {
-        selectAllCheckbox.addEventListener('change', function () {
-            const isChecked = selectAllCheckbox.checked;
-            orderCheckboxes.forEach(checkbox => checkbox.checked = isChecked);
-            updateActionButtonsVisibility();
-        });
-    }
+                                                                        fetch(cleanUrl, {
+                                                                            method: 'POST',
+                                                                            body: formData
+                                                                        })
+                                                                                .then(res => {
+                                                                                    if (res.redirected) {
+                                                                                        window.location.href = res.url;
+                                                                                    } else {
+                                                                                        window.location.reload();
+                                                                                    }
+                                                                                })
+                                                                                .catch(err => {
+                                                                                    modalForm.submit();
+                                                                                });
+                                                                    });
+                                                                }
+                                                            })
+                                                            .catch(error => {
+                                                                document.getElementById('clientModalBody').innerHTML = '<div class="alert alert-danger">Erreur de chargement du formulaire.</div>';
+                                                            });
+                                                }
 
-    orderCheckboxes.forEach(checkbox => {
-        checkbox.addEventListener('change', updateActionButtonsVisibility);
-    });
+                                                // Универсальный обработчик маски телефона для модальных окон
+                                                document.addEventListener('input', function (e) {
+                                                    if (e.target && e.target.id === 'telephoneInput') {
+                                                        let input = e.target;
+                                                        let digits = input.value.replace(/\D/g, '');
 
-    updateActionButtonsVisibility();
+                                                        if (digits.startsWith('33')) {
+                                                            digits = digits.slice(2);
+                                                        } else if (digits.startsWith('0')) {
+                                                            digits = digits.slice(1);
+                                                        }
 
-    const topButton = document.getElementById("btn-back-to-top");
-    const bottomButton = document.getElementById("btn-back-to-bottom");
+                                                        digits = digits.slice(0, 9);
 
-    window.onscroll = function () {
-        const scrollTop = document.body.scrollTop || document.documentElement.scrollTop;
-        const scrollHeight = document.documentElement.scrollHeight;
-        const clientHeight = document.documentElement.clientHeight;
+                                                        let formatted = '+33';
+                                                        if (digits.length > 0) {
+                                                            formatted += ' ' + digits.substring(0, 1);
+                                                        }
+                                                        if (digits.length > 1) {
+                                                            formatted += ' ' + digits.substring(1, 3);
+                                                        }
+                                                        if (digits.length > 3) {
+                                                            formatted += ' ' + digits.substring(3, 5);
+                                                        }
+                                                        if (digits.length > 5) {
+                                                            formatted += ' ' + digits.substring(5, 7);
+                                                        }
+                                                        if (digits.length > 7) {
+                                                            formatted += ' ' + digits.substring(7, 9);
+                                                        }
 
-        if (scrollTop > 300) {
-            topButton.style.display = "block";
-        } else {
-            topButton.style.display = "none";
-        }
+                                                        input.value = formatted;
+                                                    }
+                                                });
 
-        if (scrollTop + clientHeight < scrollHeight - 300) {
-            bottomButton.style.display = "block";
-        } else {
-            bottomButton.style.display = "none";
-        }
-    };
+                                                document.addEventListener('focusin', function (e) {
+                                                    if (e.target && e.target.id === 'telephoneInput') {
+                                                        if (!e.target.value || e.target.value.trim() === '' || e.target.value.trim() === '+') {
+                                                            e.target.value = '+33 ';
+                                                        }
+                                                    }
+                                                });
 
-    topButton.addEventListener("click", function () {
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-    });
+                                                document.addEventListener("DOMContentLoaded", function () {
+                                                    const params = new URLSearchParams(window.location.search);
+                                                    let targetId = params.get('scroll');
 
-    bottomButton.addEventListener("click", function () {
-        window.scrollTo({ top: document.documentElement.scrollHeight, behavior: 'smooth' });
-    });
+                                                    // якорь #order-ID тоже поддерживаем (используется при копировании)
+                                                    if (!targetId && window.location.hash.startsWith('#order-')) {
+                                                        targetId = window.location.hash.replace('#order-', '');
+                                                    }
+                                                    if (!targetId)
+                                                        return;
+
+                                                    const row = document.getElementById('order-' + targetId);
+                                                    if (row) {
+                                                        const noteRow = row.nextElementSibling; // строка с заметками
+                                                        row.scrollIntoView({behavior: 'smooth', block: 'center'});
+                                                        [row, noteRow].forEach(r => r && r.classList.add('row-just-saved'));
+                                                        setTimeout(() => {
+                                                            [row, noteRow].forEach(r => r && r.classList.remove('row-just-saved'));
+                                                        }, 2500);
+                                                    }
+
+                                                    // чистим адрес, чтобы при F5 не прокручивало повторно
+                                                    ['scroll', 'added', 'updated', 'copied'].forEach(p => params.delete(p));
+                                                    const qs = params.toString();
+                                                    history.replaceState(null, '', window.location.pathname + (qs ? '?' + qs : ''));
+                                                });
+
+                                                setTimeout(function () {
+                                                    const alerts = document.querySelectorAll('.alert');
+                                                    alerts.forEach(function (alertElement) {
+                                                        const alert = new bootstrap.Alert(alertElement);
+                                                        alert.close();
+                                                    });
+                                                }, 5000);
+
+                                                const selectAllCheckbox = document.getElementById('selectAll');
+                                                const orderCheckboxes = document.querySelectorAll('.order-checkbox');
+                                                const bulkDeleteBtn = document.getElementById('bulkDeleteBtn');
+                                                const bulkCopyBtn = document.getElementById('bulkCopyBtn');
+                                                const actionsHeader = document.getElementById('actionsHeader');
+                                                const actionsCells = document.querySelectorAll('.actions-column');
+
+                                                function updateActionButtonsVisibility() {
+                                                    const checkedCheckboxes = document.querySelectorAll('.order-checkbox:checked');
+                                                    const checkedCount = checkedCheckboxes.length;
+
+                                                    if (checkedCount > 0) {
+                                                        bulkDeleteBtn.classList.remove('d-none');
+                                                    } else {
+                                                        bulkDeleteBtn.classList.add('d-none');
+                                                    }
+
+                                                    if (checkedCount === 1) {
+                                                        bulkCopyBtn.classList.remove('d-none');
+                                                    } else {
+                                                        bulkCopyBtn.classList.add('d-none');
+                                                    }
+
+                                                    if (checkedCount > 0) {
+                                                        if (actionsHeader)
+                                                            actionsHeader.style.display = 'table-cell';
+                                                        actionsCells.forEach(cell => cell.style.display = 'table-cell');
+                                                    } else {
+                                                        if (actionsHeader)
+                                                            actionsHeader.style.display = 'none';
+                                                        actionsCells.forEach(cell => cell.style.display = 'none');
+                                                    }
+
+                                                    orderCheckboxes.forEach(function (checkbox) {
+                                                        const mainRow = checkbox.closest('tr');
+                                                        if (checkbox.checked) {
+                                                            mainRow.classList.add('row-selected');
+                                                        } else {
+                                                            mainRow.classList.remove('row-selected');
+                                                        }
+                                                    });
+
+                                                    if (selectAllCheckbox && orderCheckboxes.length > 0) {
+                                                        selectAllCheckbox.checked = (checkedCount === orderCheckboxes.length);
+                                                    }
+                                                }
+
+                                                if (selectAllCheckbox) {
+                                                    selectAllCheckbox.addEventListener('change', function () {
+                                                        const isChecked = selectAllCheckbox.checked;
+                                                        orderCheckboxes.forEach(checkbox => checkbox.checked = isChecked);
+                                                        updateActionButtonsVisibility();
+                                                    });
+                                                }
+
+                                                orderCheckboxes.forEach(checkbox => {
+                                                    checkbox.addEventListener('change', updateActionButtonsVisibility);
+                                                });
+
+                                                updateActionButtonsVisibility();
+
+                                                const topButton = document.getElementById("btn-back-to-top");
+                                                const bottomButton = document.getElementById("btn-back-to-bottom");
+
+                                                window.onscroll = function () {
+                                                    const scrollTop = document.body.scrollTop || document.documentElement.scrollTop;
+                                                    const scrollHeight = document.documentElement.scrollHeight;
+                                                    const clientHeight = document.documentElement.clientHeight;
+
+                                                    if (scrollTop > 300) {
+                                                        topButton.style.display = "block";
+                                                    } else {
+                                                        topButton.style.display = "none";
+                                                    }
+
+                                                    if (scrollTop + clientHeight < scrollHeight - 300) {
+                                                        bottomButton.style.display = "block";
+                                                    } else {
+                                                        bottomButton.style.display = "none";
+                                                    }
+                                                };
+
+                                                topButton.addEventListener("click", function () {
+                                                    window.scrollTo({top: 0, behavior: 'smooth'});
+                                                });
+
+                                                bottomButton.addEventListener("click", function () {
+                                                    window.scrollTo({top: document.documentElement.scrollHeight, behavior: 'smooth'});
+                                                });
 </script>
 </body>
 </html>
