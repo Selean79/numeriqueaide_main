@@ -96,13 +96,60 @@ function lastSeenLabel($minutes): string {
     }
     .last-seen { font-size: .78rem; color: #9ca3af; font-weight: 400; }
     .last-seen.is-online { color: #dc3545; font-weight: 600; }
+
+    /* =========================================================
+       МОБИЛЬНАЯ ВЕРСИЯ (экраны до 768px): таблица → карточки
+       ========================================================= */
+    @media (max-width: 767.98px) {
+        h3 { font-size: 1.2rem; }
+
+        .users-card { background: transparent !important; box-shadow: none !important; border: none !important; }
+        .users-card .card-body { padding: 0 !important; }
+
+        .users-table thead { display: none; }
+        .users-table,
+        .users-table tbody { display: block; width: 100%; background: transparent; }
+
+        .users-table tr.user-row {
+            display: grid;
+            grid-template-columns: auto auto 1fr;
+            grid-template-areas:
+                "name name   actions"
+                "full full   full"
+                "type status .";
+            gap: 4px 10px;
+            position: relative;
+            margin-bottom: 12px;
+            padding: 12px 14px;
+            background: #ffffff;
+            border-radius: 10px;
+            box-shadow: 0 1px 3px rgba(0,0,0,.12);
+        }
+        .users-table tr.user-row > td {
+            display: block;
+            padding: 0;
+            border: none;
+            background: transparent;
+            text-align: left !important;
+        }
+        .users-table tr.user-row > td.cell-id      { display: none; }
+        .users-table tr.user-row > td.cell-name    { grid-area: name; font-size: 1.1rem; }
+        .users-table tr.user-row > td.cell-full    { grid-area: full; color: #4b5563; }
+        .users-table tr.user-row > td.cell-type    { grid-area: type; margin-top: 4px; }
+        .users-table tr.user-row > td.cell-status  { grid-area: status; margin-top: 4px; }
+        .users-table tr.user-row > td.cell-actions { grid-area: actions; align-self: start; justify-self: end; }
+        .users-table tr.user-row > td.cell-actions .btn { padding: 6px 12px; }
+
+        .users-table tr.row-empty,
+        .users-table tr.row-empty > td { display: block; background: #fff; border-radius: 10px; }
+    }
 </style>
 
-<div class="container mt-4" style="max-width: 900px;">
-    <div class="d-flex justify-content-between align-items-center mb-3">
+<div class="container mt-3 mt-md-4 px-2 px-md-3" style="max-width: 900px;">
+    <div class="d-flex justify-content-between align-items-center gap-2 mb-3">
         <h3 class="mb-0"><i class="bi bi-people me-2"></i>Liste des utilisateurs</h3>
         <a href="register_user.php" class="btn btn-success">
-            <i class="bi bi-person-plus me-1"></i> Ajouter un utilisateur
+            <i class="bi bi-person-plus me-1"></i><span class="d-none d-sm-inline"> Ajouter un utilisateur</span><span class="d-sm-none"> Ajouter</span>
         </a>
     </div>
 
@@ -140,10 +187,10 @@ function lastSeenLabel($minutes): string {
         </div>
     <?php endif; ?>
 
-    <div class="card shadow-sm">
+    <div class="card shadow-sm users-card">
         <div class="card-body p-0">
             <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0">
+                <table class="table table-hover align-middle mb-0 users-table">
                     <thead class="table-light">
                         <tr>
                             <th style="width: 60px;" class="text-center">#</th>
@@ -156,7 +203,7 @@ function lastSeenLabel($minutes): string {
                     </thead>
                     <tbody>
                         <?php if (empty($users)): ?>
-                            <tr>
+                            <tr class="row-empty">
                                 <td colspan="6" class="text-center py-4 text-muted">Aucun utilisateur trouvé</td>
                             </tr>
                         <?php else: ?>
@@ -165,9 +212,9 @@ function lastSeenLabel($minutes): string {
                                 $hasActivity = array_key_exists('is_online', $user);
                                 $isOnline = $hasActivity && (int)$user['is_online'] === 1;
                                 ?>
-                                <tr>
-                                    <td class="text-center fw-bold text-secondary"><?= (int)$user['id']; ?></td>
-                                    <td class="fw-bold">
+                                <tr class="user-row">
+                                    <td class="text-center fw-bold text-secondary cell-id"><?= (int)$user['id']; ?></td>
+                                    <td class="fw-bold cell-name">
                                         <?php if ($hasActivity): ?>
                                             <span class="<?= $isOnline ? 'online-dot' : 'offline-dot'; ?> me-2" title="<?= $isOnline ? 'En ligne' : 'Hors ligne'; ?>"></span>
                                         <?php endif; ?>
@@ -178,8 +225,8 @@ function lastSeenLabel($minutes): string {
                                             </div>
                                         <?php endif; ?>
                                     </td>
-                                    <td><?= htmlspecialchars(trim(($user['nom'] ?? '') . ' ' . ($user['prenom'] ?? ''))); ?></td>
-                                    <td>
+                                    <td class="cell-full"><?= htmlspecialchars(trim(($user['nom'] ?? '') . ' ' . ($user['prenom'] ?? ''))); ?></td>
+                                    <td class="cell-type">
                                         <?php
                                             $badgeClass = 'bg-secondary';
                                             if ($user['type'] === 'Admin') $badgeClass = 'bg-danger';
@@ -187,14 +234,14 @@ function lastSeenLabel($minutes): string {
                                         ?>
                                         <span class="badge <?= $badgeClass; ?>"><?= htmlspecialchars($user['type']); ?></span>
                                     </td>
-                                    <td>
+                                    <td class="cell-status">
                                         <?php if (($user['status'] ?? 'Active') === 'Active'): ?>
                                             <span class="badge bg-success">Active</span>
                                         <?php else: ?>
                                             <span class="badge bg-warning text-dark">Inactive</span>
                                         <?php endif; ?>
                                     </td>
-                                    <td class="text-center text-nowrap">
+                                    <td class="text-center text-nowrap cell-actions">
                                         <a href="user_edit.php?id=<?= (int)$user['id']; ?>" class="btn btn-sm btn-outline-primary me-1" title="Modifier">
                                             <i class="bi bi-pencil"></i>
                                         </a>
