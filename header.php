@@ -9,6 +9,18 @@ if (!isset($_SESSION['user_id'])) {
     exit;
 }
 
+// Отмечаем активность пользователя (для индикатора «en ligne» в списке пользователей).
+// Пишем в базу не чаще раза в минуту, чтобы не нагружать её на каждой странице.
+if (isset($pdo) && (time() - ($_SESSION['last_activity_saved'] ?? 0)) >= 60) {
+    try {
+        $stmtActivity = $pdo->prepare("UPDATE users SET last_activity = NOW() WHERE id = :id");
+        $stmtActivity->execute([':id' => (int)$_SESSION['user_id']]);
+        $_SESSION['last_activity_saved'] = time();
+    } catch (PDOException $e) {
+        // колонки last_activity ещё нет — просто пропускаем
+    }
+}
+
 // Получаем тип текущего пользователя (по умолчанию User, если не задан)
 $userType = $_SESSION['type'] ?? 'User';
 ?>

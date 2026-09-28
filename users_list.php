@@ -12,7 +12,7 @@ if (session_status() === PHP_SESSION_NONE) {
 // 1. Обработка удаления пользователя (ДО подключения хедера!)
 if (isset($_GET['delete_id'])) {
     $delete_id = (int)$_GET['delete_id'];
-    
+
     // Защита: нельзя удалить самого себя, если нужно (по желанию можно убрать)
     try {
         $stmt = $pdo->prepare("DELETE FROM users WHERE id = :id");
@@ -31,19 +31,72 @@ if (isset($_GET['clear_filter'])) {
     exit;
 }
 
-// 2. Теперь подключаем хедер
+// 2. Теперь подключаем хедер (он же обновляет активность текущего пользователя)
 require_once 'header.php';
+
+// Сколько минут без действий считаем «en ligne»
+$ONLINE_MINUTES = 5;
 
 // Загружаем список пользователей
 try {
-    $stmt = $pdo->query("SELECT * FROM users ORDER BY id DESC");
+    $stmt = $pdo->query("
+        SELECT
+            u.*,
+            (u.last_activity IS NOT NULL AND u.last_activity >= NOW() - INTERVAL $ONLINE_MINUTES MINUTE) AS is_online,
+            TIMESTAMPDIFF(MINUTE, u.last_activity, NOW()) AS minutes_ago
+        FROM users u
+        ORDER BY u.id DESC
+    ");
     $users = $stmt->fetchAll();
 } catch (PDOException $e) {
-    die("Erreur de chargement : " . htmlspecialchars($e->getMessage()));
+    // колонки last_activity ещё нет — показываем список без индикатора
+    try {
+        $users = $pdo->query("SELECT * FROM users ORDER BY id DESC")->fetchAll();
+        $activity_missing = true;
+    } catch (PDOException $e2) {
+        die("Erreur de chargement : " . htmlspecialchars($e2->getMessage()));
+    }
+}
+
+// Текст «vu il y a …»
+function lastSeenLabel($minutes): string {
+    if ($minutes === null) return 'jamais connecté';
+    $minutes = (int)$minutes;
+    if ($minutes < 60)   return 'vu il y a ' . max(1, $minutes) . ' min';
+    if ($minutes < 1440) return 'vu il y a ' . floor($minutes / 60) . ' h';
+    return 'vu il y a ' . floor($minutes / 1440) . ' j';
 }
 ?>
 
 <title>Liste des utilisateurs — NumériqueAide</title>
+
+<style>
+    .online-dot {
+        display: inline-block;
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background-color: #dc3545;
+        box-shadow: 0 0 0 0 rgba(220, 53, 69, .6);
+        animation: onlinePulse 1.8s infinite;
+        vertical-align: middle;
+    }
+    .offline-dot {
+        display: inline-block;
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background-color: #d1d5db;
+        vertical-align: middle;
+    }
+    @keyframes onlinePulse {
+        0%   { box-shadow: 0 0 0 0 rgba(220, 53, 69, .6); }
+        70%  { box-shadow: 0 0 0 7px rgba(220, 53, 69, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0); }
+    }
+    .last-seen { font-size: .78rem; color: #9ca3af; font-weight: 400; }
+    .last-seen.is-online { color: #dc3545; font-weight: 600; }
+</style>
 
 <div class="container mt-4" style="max-width: 900px;">
     <div class="d-flex justify-content-between align-items-center mb-3">
@@ -52,6 +105,12 @@ try {
             <i class="bi bi-person-plus me-1"></i> Ajouter un utilisateur
         </a>
     </div>
+
+    <?php if (!empty($activity_missing)): ?>
+        <div class="alert alert-info small">
+            Pour afficher qui est en ligne, ajoutez la colonne <code>last_activity</code> à la table <code>users</code>.
+        </div>
+    <?php endif; ?>
 
     <?php if (isset($_GET['added'])): ?>
         <div class="alert alert-success alert-dismissible fade show" role="alert">
@@ -89,7 +148,7 @@ try {
                         <tr>
                             <th style="width: 60px;" class="text-center">#</th>
                             <th>Username</th>
-                            <th>Nom & Prénom</th>
+                            <th>Nom &amp; Prénom</th>
                             <th>Type</th>
                             <th>Statut</th>
                             <th style="width: 120px;" class="text-center">Actions</th>
@@ -102,12 +161,26 @@ try {
                             </tr>
                         <?php else: ?>
                             <?php foreach ($users as $user): ?>
+                                <?php
+                                $hasActivity = array_key_exists('is_online', $user);
+                                $isOnline = $hasActivity && (int)$user['is_online'] === 1;
+                                ?>
                                 <tr>
-                                    <td class="text-center fw-bold text-secondary"><?= $user['id']; ?></td>
-                                    <td class="fw-bold"><?= htmlspecialchars($user['username']); ?></td>
+                                    <td class="text-center fw-bold text-secondary"><?= (int)$user['id']; ?></td>
+                                    <td class="fw-bold">
+                                        <?php if ($hasActivity): ?>
+                                            <span class="<?= $isOnline ? 'online-dot' : 'offline-dot'; ?> me-2" title="<?= $isOnline ? 'En ligne' : 'Hors ligne'; ?>"></span>
+                                        <?php endif; ?>
+                                        <?= htmlspecialchars($user['username']); ?>
+                                        <?php if ($hasActivity): ?>
+                                            <div class="last-seen <?= $isOnline ? 'is-online' : ''; ?>" style="padding-left: 18px;">
+                                                <?= $isOnline ? 'en ligne' : lastSeenLabel($user['minutes_ago']); ?>
+                                            </div>
+                                        <?php endif; ?>
+                                    </td>
                                     <td><?= htmlspecialchars(trim(($user['nom'] ?? '') . ' ' . ($user['prenom'] ?? ''))); ?></td>
                                     <td>
-                                        <?php 
+                                        <?php
                                             $badgeClass = 'bg-secondary';
                                             if ($user['type'] === 'Admin') $badgeClass = 'bg-danger';
                                             elseif ($user['type'] === 'PowerUser') $badgeClass = 'bg-primary';
@@ -142,12 +215,17 @@ try {
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
     setTimeout(function () {
-        const alerts = document.querySelectorAll('.alert');
+        const alerts = document.querySelectorAll('.alert-dismissible');
         alerts.forEach(function (alertElement) {
             const alert = new bootstrap.Alert(alertElement);
             alert.close();
         });
     }, 5000);
+
+    // Обновляем страницу раз в минуту, чтобы индикатор «en ligne» был актуальным
+    setTimeout(function () {
+        window.location.href = 'users_list.php';
+    }, 60000);
 </script>
 </body>
 </html>
