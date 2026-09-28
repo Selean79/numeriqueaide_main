@@ -227,17 +227,19 @@ require_once 'header.php';
 
     /* Prochaines interventions */
     .day-title {
-        font-size: .8rem;
+        font-size: .82rem;
         font-weight: 700;
         text-transform: uppercase;
         letter-spacing: .04em;
-        color: #6b7280;
-        padding: 12px 18px 6px;
-        background: #f8f9fa;
-        border-top: 1px solid #eef0f2;
+        color: #14532d;
+        padding: 10px 18px;
+        background: #d1f2db;
+        border-top: 1px solid #b7e4c4;
+        border-bottom: 1px solid #b7e4c4;
     }
-    .day-title.is-today { color: #14532d; background: #e8f7ec; }
-    .day-title .count { font-weight: 600; color: #9ca3af; margin-left: 6px; }
+    .day-title.is-today { color: #052e16; background: #82e89e; border-color: #6fd98c; }
+    .day-title .count { font-weight: 600; color: #3f7a52; margin-left: 6px; }
+    .day-title.is-today .count { color: #14532d; }
 
     .intervention {
         padding: 14px 18px;
