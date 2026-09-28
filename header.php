@@ -212,3 +212,28 @@ $partenairesActive = navActive('plateformes') !== '' || navActive('magasins') !=
         </div>
     </div>
 </nav>
+
+<script>
+    // Мобильное меню: закрывается при нажатии в любом месте страницы вне меню
+    document.addEventListener('DOMContentLoaded', function () {
+        const menu = document.getElementById('navbarNav');
+        const nav  = document.querySelector('.main-nav');
+        if (!menu || !nav) return;
+
+        function closeMenu() {
+            if (!menu.classList.contains('show')) return;
+            if (window.bootstrap && bootstrap.Collapse) {
+                bootstrap.Collapse.getOrCreateInstance(menu, { toggle: false }).hide();
+            } else {
+                menu.classList.remove('show');
+            }
+        }
+
+        document.addEventListener('click', function (e) {
+            if (!nav.contains(e.target)) closeMenu();
+        });
+        document.addEventListener('touchstart', function (e) {
+            if (!nav.contains(e.target)) closeMenu();
+        }, { passive: true });
+    });
+</script>
