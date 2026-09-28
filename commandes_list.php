@@ -532,128 +532,71 @@ require_once 'header.php';
     }
 
     /* =========================================================
-       МОБИЛЬНАЯ ВЕРСИЯ (экраны до 768px): таблица → карточки
+       МОБИЛЬНАЯ ВЕРСИЯ (экраны до 768px): отдельные карточки
        ========================================================= */
+    .m-order {
+        --st: #198754;
+        position: relative;
+        background: #ffffff;
+        border-radius: 12px;
+        border-left: 5px solid var(--st);
+        box-shadow: 0 1px 3px rgba(0,0,0,.10);
+        padding: 12px 14px 10px;
+        margin-bottom: 10px;
+        transition: background-color .5s, box-shadow .2s;
+    }
+    .m-order.mc-encours { --st: #ffc107; background: #fffdf2; }
+    .m-order.mc-paye    { --st: #9ca3af; background: #f3f4f6; }
+    .m-order.mc-annulee { --st: #dc3545; background: #fff5f5; }
+    .m-order.is-selected { box-shadow: 0 0 0 2px #0d6efd; }
+    .m-order.row-just-saved { background: #fff3a0; }
+
+    .mo-top { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+    .mo-when { display: flex; align-items: center; gap: 8px; color: #374151; font-weight: 600; }
+    .mo-amount { font-size: 1.3rem; font-weight: 800; color: #111827; white-space: nowrap; }
+    .mc-annulee .mo-amount { text-decoration: line-through; color: #9ca3af; }
+
+    .mo-client { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; margin-top: 8px; }
+    .mo-client a.mo-name { font-size: 1.08rem; font-weight: 700; color: #111827; text-decoration: none; }
+    .mo-contact { margin-top: 4px; font-size: .88rem; color: #4b5563; }
+    .mo-contact a { color: inherit; text-decoration: none; }
+    .mo-contact div { margin-top: 2px; }
+
+    .mo-job { margin-top: 8px; padding-top: 8px; border-top: 1px dashed #e5e7eb; font-size: .9rem; }
+    .mo-comment { font-weight: 600; color: #111827; }
+    .mo-comment .bi { color: #0d6efd; }
+    .mo-note { display: inline-block; margin-top: 4px; padding: 3px 8px; border-radius: 6px; background: #fdf3cf; color: #78350f; font-size: .85rem; }
+    .mc-paye .mo-note, .mc-annulee .mo-note { background: transparent; padding-left: 0; color: #6b7280; }
+
+    .mo-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 10px; }
+    .mo-chip { display: inline-flex; align-items: center; gap: 4px; background: rgba(0,0,0,.05); color: #374151; border-radius: 999px; padding: 2px 9px; font-size: .78rem; }
+    /* Taxe и Cumul — всегда в одну строку */
+    .mo-money { display: flex; flex-wrap: nowrap; gap: 6px; margin-top: 6px; }
+    .mo-money .mo-chip { white-space: nowrap; }
+    .mo-chip.is-done { background: #d1f2db; color: #14532d; }
+    .mo-chip.is-todo { background: #dbeafe; color: #1e40af; }
+
+    .mo-bottom { display: flex; align-items: center; gap: 10px; margin-top: 10px; padding-top: 8px; border-top: 1px solid rgba(0,0,0,.06); }
+    .mo-id { font-size: .8rem; font-weight: 700; color: #6b7280; }
+    .mo-paid-date { font-size: .78rem; color: #15803d; }
+    .mo-actions { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+    .mo-actions .btn { padding: 4px 12px; }
+    .mo-actions .form-check-input { width: 1.4em; height: 1.4em; margin: 0; }
+
+    .m-totals { background: #82e89e; border-radius: 12px; padding: 12px 14px; margin-top: 14px; display: flex; justify-content: space-between; gap: 8px; }
+    .m-totals .lbl { font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: #14532d; }
+    .m-totals .val { font-weight: 800; color: #052e16; white-space: nowrap; }
+    .m-totals .main .val { font-size: 1.2rem; }
+
     @media (max-width: 767.98px) {
         h3 { font-size: 1.25rem; }
-
-        .orders-card { background: transparent !important; box-shadow: none !important; border: none !important; }
-        .orders-card .card-body { padding: 0 !important; }
-        .orders-table { min-width: 0 !important; background: transparent; }
-        .orders-table thead { display: none; }
-
-        .orders-table,
-        .orders-table tbody,
-        .orders-table tfoot { display: block; width: 100%; }
-
-        /* Основная строка заказа = верх карточки */
-        .orders-table tr.order-main {
-            display: block;
-            position: relative;
-            margin-top: 12px;
-            border-radius: 10px 10px 0 0;
-            overflow: hidden;
-            box-shadow: 0 1px 3px rgba(0,0,0,.12);
-        }
-        .orders-table tr.order-main > td {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 10px;
-            padding: 6px 12px;
-            border: none;
-            text-align: right !important;
-            white-space: normal !important;
-            background-color: #ffffff;
-        }
-        .orders-table tr.order-main > td[data-label]::before {
-            content: attr(data-label);
-            font-weight: 600;
-            color: #6b7280;
-            text-align: left;
-            flex-shrink: 0;
-        }
-
-        /* Чекбокс — в правом верхнем углу карточки */
-        .orders-table tr.order-main > td.cell-check {
-            position: absolute;
-            top: 6px;
-            right: 4px;
-            padding: 4px 8px;
-            background: transparent !important;
-            z-index: 2;
-        }
-        .orders-table tr.order-main > td.cell-check .form-check-input { width: 1.4em; height: 1.4em; }
-
-        /* Номер заказа — заголовок карточки */
-        .orders-table tr.order-main > td.cell-id {
-            font-size: 1.05rem;
-            padding: 10px 50px 8px 12px;
-            border-bottom: 1px solid rgba(0,0,0,.08);
-            justify-content: flex-start;
-        }
-
-        /* Клиент — подпись сверху, данные под ней */
-        .orders-table tr.order-main > td.cell-client {
-            flex-direction: column;
-            align-items: flex-start;
-            text-align: left !important;
-            gap: 2px;
-        }
-
-        /* Кнопки действий на мобильном */
-        .orders-table tr.order-main > td.actions-column { display: none; }
-        .show-actions .orders-table tr.order-main > td.actions-column {
-            display: flex;
-            justify-content: flex-end;
-            border-top: 1px solid rgba(0,0,0,.08);
-        }
-
-        /* Строка заметок = низ карточки */
-        .orders-table tr.order-notes {
-            display: block;
-            border-radius: 0 0 10px 10px;
-            overflow: hidden;
-            border-bottom: none !important;
-            box-shadow: 0 1px 3px rgba(0,0,0,.12);
-        }
-        .orders-table tr.order-notes > td {
-            display: block;
-            padding: 8px 12px !important;
-            border: none;
-        }
-        .orders-table tr.order-notes > td .d-inline-block { display: block !important; margin: 0 0 6px 0 !important; }
-
-        /* Пустой список */
-        .orders-table tr.row-empty, .orders-table tr.row-empty > td { display: block; background: #fff; border-radius: 10px; }
-
-        /* Итоги — отдельная карточка внизу */
-        .orders-table tfoot tr {
-            display: block;
-            margin-top: 16px;
-            border-radius: 10px;
-            overflow: hidden;
-        }
-        .orders-table tfoot td {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 6px 12px;
-            border: none;
-        }
-        .orders-table tfoot td[data-label]::before {
-            content: attr(data-label);
-            font-weight: 600;
-        }
-        .orders-table tfoot td.cell-total-title { justify-content: flex-start; font-weight: 700; font-size: 1.05rem; }
-        .orders-table tfoot td.cell-empty { display: none; }
 
         /* Панель кнопок */
         #bulkActionButtons { top: 56px; flex-wrap: wrap; }
         #bulkActionButtons .btn { flex: 1 1 auto; }
 
-        /* Плавающие кнопки прокрутки поменьше */
-        #btn-back-to-top, #btn-back-to-bottom { width: 44px; height: 44px; padding: 0; font-size: 1.1rem; right: 12px !important; }
+        /* Плавающие кнопки прокрутки поменьше и прозрачнее */
+        #btn-back-to-top, #btn-back-to-bottom { width: 44px; height: 44px; padding: 0; font-size: 1.1rem; right: 12px !important; opacity: .85; }
     }
 </style>
 
@@ -794,7 +737,7 @@ require_once 'header.php';
             </button>
         </div>
 
-        <div class="card shadow-sm orders-card">
+        <div class="card shadow-sm orders-card d-none d-md-block">
             <div class="card-body p-0">
                 <div class="table-responsive" id="ordersWrapper">
                     <table class="table table-hover align-middle mb-0 orders-table">
@@ -824,6 +767,7 @@ require_once 'header.php';
                         <?php else: ?>
                             <?php
                             $rowIndex = 0;
+                            $mobileCards = '';
                             foreach ($commandes as $order):
                                 $rowIndex++;
                                 $montant = (float)($order['montant'] ?? 0);
@@ -898,7 +842,7 @@ require_once 'header.php';
                                         </a>
                                     </td>
                                     <td class="fw-bold text-nowrap cell-id"><?= htmlspecialchars($order['id_commande']); ?></td>
-                                    <td class="text-nowrap" data-label="Date">
+                                    <td class="text-nowrap cell-date" data-label="Date">
                                         <div>
                                             <?= date('d.m.Y', strtotime($order['date_commande'])); ?>
                                             <?php if (!empty($order['rdv_time'])): ?>
@@ -942,11 +886,11 @@ require_once 'header.php';
                                             <?php endif; ?>
                                         </div>
                                     </td>
-                                    <td data-label="Plateforme"><span class="badge <?= $platBadgeClass; ?>"><?= htmlspecialchars($platformName); ?></span></td>
-                                    <td data-label="Facture"><?= !empty($order['facture_number']) ? htmlspecialchars($order['facture_number']) : '<span class="text-muted">—</span>'; ?></td>
-                                    <td data-label="Paiement"><?= !empty($order['payment_method_name']) ? htmlspecialchars($order['payment_method_name']) : '<span class="text-muted">—</span>'; ?></td>
-                                    <td class="text-end fw-bold" data-label="Montant"><?= number_format($montant, 2, ',', ' '); ?> €</td>
-                                    <td class="text-center text-nowrap" data-label="Taxe">
+                                    <td class="cell-plat" data-label="Plateforme"><span class="badge <?= $platBadgeClass; ?>"><?= htmlspecialchars($platformName); ?></span></td>
+                                    <td class="cell-facture<?= empty($order['facture_number']) ? ' is-empty' : ''; ?>" data-label="Facture"><?= !empty($order['facture_number']) ? '<i class="bi bi-receipt me-1 text-muted d-md-none"></i>' . htmlspecialchars($order['facture_number']) : '<span class="text-muted">—</span>'; ?></td>
+                                    <td class="cell-paie<?= empty($order['payment_method_name']) ? ' is-empty' : ''; ?>" data-label="Paiement"><?= !empty($order['payment_method_name']) ? '<i class="bi bi-credit-card me-1 text-muted d-md-none"></i>' . htmlspecialchars($order['payment_method_name']) : '<span class="text-muted">—</span>'; ?></td>
+                                    <td class="text-end fw-bold cell-montant" data-label="Montant"><?= number_format($montant, 2, ',', ' '); ?> €</td>
+                                    <td class="text-center text-nowrap cell-taxe" data-label="Taxe">
                                         <?php if ($impotAmount > 0): ?>
                                             <?php if (!empty($order['impot_paye'])): ?>
                                                 <span class="badge bg-success" title="Налог оплачен">
@@ -961,7 +905,7 @@ require_once 'header.php';
                                             <span class="text-muted">0,00 €</span>
                                         <?php endif; ?>
                                     </td>
-                                    <td class="text-center text-nowrap" data-label="Cumul">
+                                    <td class="text-center text-nowrap cell-cumul" data-label="Cumul">
                                         <?php if ($epargneAmount > 0): ?>
                                             <?php if (!empty($order['epargne_paye'])): ?>
                                                 <span class="badge bg-success" title="Накопления переведены">
@@ -976,7 +920,7 @@ require_once 'header.php';
                                             <span class="text-muted">0,00 €</span>
                                         <?php endif; ?>
                                     </td>
-                                    <td class="text-center" data-label="Statut">
+                                    <td class="text-center cell-status" data-label="Statut">
                                         <div>
                                             <span class="badge <?= $isCancelled ? 'bg-danger' : $statusBadge; ?>">
                                                 <?= htmlspecialchars($statusLabel); ?>
@@ -1008,6 +952,101 @@ require_once 'header.php';
                                         <?php endif; ?>
                                     </td>
                                 </tr>
+
+                                <?php
+                                // ---------- Мобильная карточка ----------
+                                $mStatusClass = 'mc-prevu';
+                                if ($rowStatusClass === 'row-status-en-cours') $mStatusClass = 'mc-encours';
+                                if ($rowStatusClass === 'row-status-paye')     $mStatusClass = 'mc-paye';
+                                if ($rowStatusClass === 'row-status-annulee')  $mStatusClass = 'mc-annulee';
+                                ob_start();
+                                ?>
+                                <div class="m-order <?= $mStatusClass; ?>" id="m-order-<?= (int)$order['id']; ?>">
+                                    <div class="mo-top">
+                                        <div class="mo-when">
+                                            <?php if (!empty($order['rdv_time'])): ?>
+                                                <span class="rdv-time-badge"><i class="bi bi-clock me-1"></i><?= substr($order['rdv_time'], 0, 5); ?></span>
+                                            <?php endif; ?>
+                                            <span><?= date('d.m.Y', strtotime($order['date_commande'])); ?></span>
+                                        </div>
+                                        <div class="mo-amount"><?= number_format((float)($order['montant'] ?? 0), 2, ',', ' '); ?> €</div>
+                                    </div>
+
+                                    <div class="mo-client">
+                                        <div>
+                                            <?php if (!empty(trim($order['client_name']))): ?>
+                                                <a href="#" class="mo-name" onclick="openClientModal('edit_client.php?id=<?= (int)$order['client_id']; ?>&modal=1', 'Modifier le client', 'bg-primary'); return false;"><?= htmlspecialchars(trim($order['client_name'])); ?></a>
+                                            <?php else: ?>
+                                                <span class="text-muted">—</span>
+                                            <?php endif; ?>
+                                            <?php if (!empty(trim($order['client_notes'] ?? ''))): ?>
+                                                <div class="small text-danger mt-1"><i class="bi bi-exclamation-circle-fill me-1"></i><?= htmlspecialchars($order['client_notes']); ?></div>
+                                            <?php endif; ?>
+                                        </div>
+                                        <span class="badge <?= $isCancelled ? 'bg-danger' : $statusBadge; ?>"><?= htmlspecialchars($statusLabel); ?></span>
+                                    </div>
+
+                                    <?php if (!empty($order['client_telephone']) || !empty($order['client_adresse'])): ?>
+                                        <div class="mo-contact">
+                                            <?php if (!empty($order['client_telephone'])): ?>
+                                                <div><i class="bi bi-telephone text-primary me-1"></i><a href="tel:<?= preg_replace('/[^\d+]/', '', $order['client_telephone']); ?>"><?= htmlspecialchars($order['client_telephone']); ?></a></div>
+                                            <?php endif; ?>
+                                            <?php if (!empty($order['client_adresse'])): ?>
+                                                <div><i class="bi bi-geo-alt text-danger me-1"></i><a href="https://www.google.com/maps/search/?api=1&query=<?= urlencode($order['client_adresse']); ?>" target="_blank"><?= htmlspecialchars($order['client_adresse']); ?></a></div>
+                                            <?php endif; ?>
+                                        </div>
+                                    <?php endif; ?>
+
+                                    <?php if ($hasNotes): ?>
+                                        <div class="mo-job">
+                                            <?php if (!empty($order['commentaire'])): ?>
+                                                <div class="mo-comment"><i class="bi bi-tools me-1"></i><?= htmlspecialchars($order['commentaire']); ?></div>
+                                            <?php endif; ?>
+                                            <?php if (!empty($order['notes'])): ?>
+                                                <div class="mo-note"><i class="bi bi-journal-text me-1"></i><?= htmlspecialchars($order['notes']); ?></div>
+                                            <?php endif; ?>
+                                        </div>
+                                    <?php endif; ?>
+
+                                    <div class="mo-meta">
+                                        <span class="badge <?= $platBadgeClass; ?>"><?= htmlspecialchars($platformName); ?></span>
+                                        <?php if (!empty($order['payment_method_name'])): ?>
+                                            <span class="mo-chip"><i class="bi bi-credit-card"></i><?= htmlspecialchars($order['payment_method_name']); ?></span>
+                                        <?php endif; ?>
+                                        <?php if (!empty($order['facture_number'])): ?>
+                                            <span class="mo-chip"><i class="bi bi-receipt"></i><?= htmlspecialchars($order['facture_number']); ?></span>
+                                        <?php endif; ?>
+                                    </div>
+
+                                    <?php if ($impotAmount > 0 || $epargneAmount > 0): ?>
+                                    <div class="mo-money">
+                                        <?php if ($impotAmount > 0): ?>
+                                            <span class="mo-chip <?= !empty($order['impot_paye']) ? 'is-done' : 'is-todo'; ?>" title="Taxe">
+                                                <i class="bi <?= !empty($order['impot_paye']) ? 'bi-check-all' : 'bi-clock'; ?>"></i>Taxe <?= number_format($impotAmount, 2, ',', ' '); ?> €
+                                            </span>
+                                        <?php endif; ?>
+                                        <?php if ($epargneAmount > 0): ?>
+                                            <span class="mo-chip <?= !empty($order['epargne_paye']) ? 'is-done' : 'is-todo'; ?>" title="Cumul">
+                                                <i class="bi <?= !empty($order['epargne_paye']) ? 'bi-check-all' : 'bi-clock'; ?>"></i>Cumul <?= number_format($epargneAmount, 2, ',', ' '); ?> €
+                                            </span>
+                                        <?php endif; ?>
+                                    </div>
+                                    <?php endif; ?>
+
+                                    <div class="mo-bottom">
+                                        <span class="mo-id"><?= htmlspecialchars($order['id_commande']); ?></span>
+                                        <?php if (!empty($order['date_paiement'])): ?>
+                                            <span class="mo-paid-date"><i class="bi bi-calendar-check me-1"></i>payé le <?= date('d.m.Y', strtotime($order['date_paiement'])); ?></span>
+                                        <?php endif; ?>
+                                        <div class="mo-actions">
+                                            <button type="button" class="btn btn-sm btn-outline-primary" onclick="openCommandeModal('edit_commande.php?id=<?= (int)$order['id']; ?>&modal=1', 'Modifier la commande', 'bg-primary')" title="Modifier">
+                                                <i class="bi bi-pencil"></i>
+                                            </button>
+                                            <input type="checkbox" class="form-check-input m-check" data-id="<?= (int)$order['id']; ?>" aria-label="Sélectionner">
+                                        </div>
+                                    </div>
+                                </div>
+                                <?php $mobileCards .= ob_get_clean(); ?>
                             <?php endforeach; ?>
                         <?php endif; ?>
                         </tbody>
@@ -1032,6 +1071,20 @@ require_once 'header.php';
                     </table>
                 </div>
             </div>
+        </div>
+
+        <!-- Мобильная версия: карточки -->
+        <div class="d-md-none">
+            <?php if (empty($commandes)): ?>
+                <div class="m-order text-center text-muted">Aucune commande trouvée</div>
+            <?php else: ?>
+                <?= $mobileCards; ?>
+                <div class="m-totals">
+                    <div class="main"><div class="lbl">Total</div><div class="val"><?= number_format($total_montant, 2, ',', ' '); ?> €</div></div>
+                    <div><div class="lbl">Taxe</div><div class="val"><?= number_format($total_impot, 2, ',', ' '); ?> €</div></div>
+                    <div class="text-end"><div class="lbl">Cumul</div><div class="val"><?= number_format($total_epargne, 2, ',', ' '); ?> €</div></div>
+                </div>
+            <?php endif; ?>
         </div>
     </form>
 </div>
@@ -1319,8 +1372,16 @@ require_once 'header.php';
         }
         if (!targetId) return;
 
+        // на телефоне — карточка, на компьютере — строка таблицы
+        const mobileCard = document.getElementById('m-order-' + targetId);
+        if (mobileCard && mobileCard.offsetParent !== null) {
+            mobileCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            mobileCard.classList.add('row-just-saved');
+            setTimeout(() => mobileCard.classList.remove('row-just-saved'), 2500);
+        }
+
         const row = document.getElementById('order-' + targetId);
-        if (row) {
+        if (row && row.offsetParent !== null) {
             const noteRow = row.nextElementSibling; // строка с заметками
             row.scrollIntoView({ behavior: 'smooth', block: 'center' });
             [row, noteRow].forEach(r => r && r.classList.add('row-just-saved'));
@@ -1364,6 +1425,13 @@ require_once 'header.php';
         orderCheckboxes.forEach(function (checkbox) {
             const mainRow = checkbox.closest('tr');
             mainRow.classList.toggle('row-selected', checkbox.checked);
+
+            const card = document.getElementById('m-order-' + checkbox.value);
+            if (card) {
+                card.classList.toggle('is-selected', checkbox.checked);
+                const mCheck = card.querySelector('.m-check');
+                if (mCheck) mCheck.checked = checkbox.checked;
+            }
         });
 
         if (selectAllCheckbox && orderCheckboxes.length > 0) {
@@ -1381,6 +1449,17 @@ require_once 'header.php';
 
     orderCheckboxes.forEach(checkbox => {
         checkbox.addEventListener('change', updateActionButtonsVisibility);
+    });
+
+    // Мобильные галочки → отмечают тот же заказ в таблице (её данные и отправляются)
+    document.querySelectorAll('.m-check').forEach(function (mCheck) {
+        mCheck.addEventListener('change', function () {
+            const target = document.querySelector('.order-checkbox[value="' + mCheck.dataset.id + '"]');
+            if (target) {
+                target.checked = mCheck.checked;
+                updateActionButtonsVisibility();
+            }
+        });
     });
 
     updateActionButtonsVisibility();
