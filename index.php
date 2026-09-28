@@ -320,6 +320,17 @@ require_once 'header.php';
         gap: 6px;
         margin-top: 10px;
     }
+    /* Кнопка Waze в фирменном голубом цвете */
+    .btn-waze {
+        color: #0a7fa8;
+        border: 1px solid #33ccff;
+        background: #ffffff;
+    }
+    .btn-waze:hover, .btn-waze:active {
+        color: #ffffff;
+        background: #33ccff;
+        border-color: #33ccff;
+    }
 
     @media (max-width: 575.98px) {
         .intervention { padding: 12px 14px; }
@@ -507,7 +518,10 @@ require_once 'header.php';
                                             <?php endif; ?>
                                             <?php if (!empty($o['adresse'])): ?>
                                                 <a href="https://www.google.com/maps/dir/?api=1&destination=<?= urlencode($o['adresse']); ?>" target="_blank" class="btn btn-sm btn-outline-secondary">
-                                                    <i class="bi bi-sign-turn-right me-1"></i>Itinéraire
+                                                    <i class="bi bi-sign-turn-right me-1"></i>Maps
+                                                </a>
+                                                <a href="https://waze.com/ul?q=<?= urlencode($o['adresse']); ?>&navigate=yes" target="_blank" class="btn btn-sm btn-waze">
+                                                    <i class="bi bi-cursor-fill me-1"></i>Waze
                                                 </a>
                                             <?php endif; ?>
                                             <a href="edit_commande.php?id=<?= (int)$o['id']; ?>" class="btn btn-sm btn-light ms-auto" title="Modifier">
