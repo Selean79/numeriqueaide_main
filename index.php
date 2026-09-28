@@ -200,6 +200,22 @@ require_once 'header.php';
 <style>
     body { background-color: #f1f3f5 !important; }
 
+    /* Текущая дата в правом верхнем углу */
+    .today-box {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: #ffffff;
+        border-radius: 10px;
+        padding: 8px 14px;
+        box-shadow: 0 1px 3px rgba(0,0,0,.08);
+        font-size: 1rem;
+        color: #374151;
+    }
+    .today-box .bi { color: #0d6efd; }
+    .today-day { font-weight: 700; color: #111827; }
+    .today-date { color: #4b5563; }
+
     .dash-card { border: none; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
     .dash-card .card-header {
         background: #ffffff;
@@ -273,8 +289,13 @@ require_once 'header.php';
 </style>
 
 <div class="container-fluid mt-3 mt-md-4 px-2 px-md-4">
-    <div class="d-flex justify-content-between align-items-center mb-3 mb-md-4">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3 mb-md-4">
         <h3 class="mb-0 fw-bold"><i class="bi bi-speedometer2 me-2"></i>Tableau de bord (<?= $current_year; ?>)</h3>
+        <div class="today-box">
+            <i class="bi bi-calendar3 me-2"></i>
+            <span class="today-day"><?= $fr_days[(int)date('w')]; ?></span>
+            <span class="today-date"><?= (int)date('j') . ' ' . $fr_months[(int)date('n')] . ' ' . date('Y'); ?></span>
+        </div>
     </div>
 
     <!-- Cartes -->
