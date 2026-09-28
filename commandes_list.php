@@ -491,9 +491,9 @@ require_once 'header.php';
     .order-group-even { background-color: #f8f9fb !important; }
     .order-group-odd { background-color: #ffffff !important; }
 
-    tr.row-status-en-cours, tr.row-status-en-cours > td { background-color: #fffad6 !important; }
-    tr.row-status-annulee, tr.row-status-annulee > td { background-color: #fee3e3 !important; }
-    tr.row-status-paye, tr.row-status-paye > td { background-color: #e1e7eb !important; }
+    tr.row-status-en-cours, tr.row-status-en-cours > td { background-color: #fffbea !important; }
+    tr.row-status-annulee, tr.row-status-annulee > td { background-color: #fff1f1 !important; }
+    tr.row-status-paye, tr.row-status-paye > td { background-color: #f1f3f5 !important; }
 
     .table-header-custom th, .table-header-custom td {
         background-color: #82e89e !important;
@@ -513,7 +513,65 @@ require_once 'header.php';
         margin-bottom: 10px;
     }
 
-    .orders-table { min-width: 1200px; }
+    .orders-table { min-width: 980px; }
+
+    /* ---------- Строки заказов (компьютер) ---------- */
+    .orders-table tbody tr.order-main > td {
+        vertical-align: top;
+        padding-top: 12px;
+        padding-bottom: 12px;
+        border-bottom: 1px solid #e5e7eb;
+    }
+    /* цветная полоса статуса слева */
+    .orders-table tbody tr.order-main > td:first-child { box-shadow: inset 5px 0 0 #198754; }
+    .orders-table tbody tr.row-status-en-cours > td:first-child { box-shadow: inset 5px 0 0 #ffc107; }
+    .orders-table tbody tr.row-status-paye > td:first-child    { box-shadow: inset 5px 0 0 #9ca3af; }
+    .orders-table tbody tr.row-status-annulee > td:first-child { box-shadow: inset 5px 0 0 #dc3545; }
+
+    .col-when { width: 120px; }
+    .col-order { width: 170px; }
+    .col-money { width: 190px; }
+    .col-status { width: 120px; }
+
+    .w-date { font-weight: 700; color: #111827; }
+    .w-day { font-size: .78rem; color: #6b7280; }
+
+    .c-name a { font-weight: 700; font-size: 1.02rem; color: #111827; text-decoration: none; }
+    .c-name a:hover { text-decoration: underline; }
+    .c-contact { display: flex; flex-wrap: wrap; column-gap: 16px; row-gap: 2px; margin-top: 3px; font-size: .86rem; color: #4b5563; }
+    .c-contact a { color: inherit; text-decoration: none; }
+    .c-contact a:hover { text-decoration: underline; }
+    .c-job { margin-top: 6px; font-size: .88rem; }
+    .c-comment { color: #1f2937; font-weight: 600; }
+    .c-comment .bi { color: #0d6efd; }
+    .c-note { display: inline-block; margin-top: 3px; padding: 2px 8px; border-radius: 6px; background: #fdf3cf; color: #78350f; }
+    tr.row-status-paye .c-note, tr.row-status-annulee .c-note { background: transparent; padding-left: 0; color: #6b7280; }
+
+    .o-id { font-weight: 700; color: #374151; font-size: .9rem; }
+    .o-tags { margin-top: 3px; }
+    .o-line { font-size: .84rem; color: #4b5563; margin-top: 3px; }
+    .o-line .bi { color: #9ca3af; }
+
+    .m-amount { font-size: 1.15rem; font-weight: 800; color: #111827; }
+    tr.row-status-annulee .m-amount { color: #9ca3af; text-decoration: line-through; }
+    .m-chips { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; margin-top: 4px; }
+    /* Taxe / Cumul — одинаковой ширины: подпись слева, сумма справа */
+    .t-chip {
+        display: flex;
+        justify-content: space-between;
+        gap: 8px;
+        width: 132px;
+        white-space: nowrap;
+        border-radius: 999px;
+        padding: 1px 10px;
+        font-size: .76rem;
+        font-weight: 600;
+    }
+    .t-chip .t-val { font-variant-numeric: tabular-nums; }
+    .t-chip.is-done { background: #d1f2db; color: #14532d; }
+    .t-chip.is-todo { background: #dbeafe; color: #1e40af; }
+
+    .tot-sub { margin-right: 14px; font-size: .9rem; }
 
     /* Колонка действий: показывается, когда выбран хотя бы один заказ */
     .actions-column { display: none; }
@@ -743,31 +801,27 @@ require_once 'header.php';
                     <table class="table table-hover align-middle mb-0 orders-table">
                         <thead class="table-header-custom">
                         <tr>
-                            <th style="width: 50px;" class="text-center">
+                            <th style="width: 44px;" class="text-center">
                                 <input type="checkbox" class="form-check-input" id="selectAll" aria-label="Tout sélectionner">
                             </th>
                             <th style="width: 90px;" class="text-center actions-column" id="actionsHeader">Actions</th>
-                            <?php renderTh('id_commande', '№ de сommande', 'text-nowrap'); ?>
-                            <?php renderTh('date_commande', 'Date', 'text-nowrap'); ?>
-                            <?php renderTh('client_name', 'Client', 'text-nowrap'); ?>
-                            <?php renderTh('platform_name', 'Plateforme', 'text-nowrap'); ?>
-                            <?php renderTh('facture_number', 'Facture', 'text-nowrap'); ?>
-                            <?php renderTh('payment_method_name', 'Paiement', 'text-nowrap'); ?>
-                            <?php renderTh('montant', 'Montant', 'text-end text-nowrap'); ?>
-                            <th style="width: 150px;" class="text-center">Taxe</th>
-                            <th style="width: 150px;" class="text-center">Cumul</th>
-                            <?php renderTh('statut', 'Statut', 'text-center text-nowrap'); ?>
+                            <?php renderTh('date_commande', 'Date', 'text-nowrap col-when'); ?>
+                            <?php renderTh('client_name', 'Client &amp; intervention', 'text-nowrap'); ?>
+                            <?php renderTh('platform_name', 'Commande', 'text-nowrap col-order'); ?>
+                            <?php renderTh('montant', 'Montant', 'text-end text-nowrap col-money'); ?>
+                            <?php renderTh('statut', 'Statut', 'text-center text-nowrap col-status'); ?>
                         </tr>
                         </thead>
                         <tbody>
                         <?php if (empty($commandes)): ?>
                             <tr class="row-empty">
-                                <td colspan="12" class="text-center py-4 text-muted">Aucune commande trouvée</td>
+                                <td colspan="7" class="text-center py-4 text-muted">Aucune commande trouvée</td>
                             </tr>
                         <?php else: ?>
                             <?php
                             $rowIndex = 0;
                             $mobileCards = '';
+                            $joursFr = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];
                             foreach ($commandes as $order):
                                 $rowIndex++;
                                 $montant = (float)($order['montant'] ?? 0);
@@ -834,121 +888,95 @@ require_once 'header.php';
                                         <input type="checkbox" name="delete_ids[]" value="<?= (int)$order['id']; ?>" class="form-check-input order-checkbox" aria-label="Sélectionner la commande">
                                     </td>
                                     <td class="text-center text-nowrap actions-column">
-                                        <button type="button" class="btn btn-sm btn-outline-primary me-1" onclick="openCommandeModal('edit_commande.php?id=<?= (int)$order['id']; ?>&modal=1', 'Modifier la commande', 'bg-primary')" title="Редактировать">
+                                        <button type="button" class="btn btn-sm btn-outline-primary me-1" onclick="openCommandeModal('edit_commande.php?id=<?= (int)$order['id']; ?>&modal=1', 'Modifier la commande', 'bg-primary')" title="Modifier">
                                             <i class="bi bi-pencil"></i>
                                         </button>
-                                        <a href="commandes_list.php?delete_id=<?= (int)$order['id']; ?>" class="btn btn-sm btn-outline-danger" onclick="return confirm('Êtes-vous sûr de vouloir supprimer cette commande?');" title="Удалить">
+                                        <a href="commandes_list.php?delete_id=<?= (int)$order['id']; ?>" class="btn btn-sm btn-outline-danger" onclick="return confirm('Êtes-vous sûr de vouloir supprimer cette commande?');" title="Supprimer">
                                             <i class="bi bi-trash"></i>
                                         </a>
                                     </td>
-                                    <td class="fw-bold text-nowrap cell-id"><?= htmlspecialchars($order['id_commande']); ?></td>
-                                    <td class="text-nowrap cell-date" data-label="Date">
-                                        <div>
-                                            <?= date('d.m.Y', strtotime($order['date_commande'])); ?>
-                                            <?php if (!empty($order['rdv_time'])): ?>
-                                                <br><small class="text-muted"><span class="rdv-time-badge mt-1"><i class="bi bi-clock me-1"></i><?= substr($order['rdv_time'], 0, 5); ?></span></small>
-                                            <?php endif; ?>
-                                        </div>
+
+                                    <!-- Когда -->
+                                    <td class="cell-when text-nowrap">
+                                        <div class="w-date"><?= date('d.m.Y', strtotime($order['date_commande'])); ?></div>
+                                        <div class="w-day"><?= $joursFr[(int)date('w', strtotime($order['date_commande']))]; ?></div>
+                                        <?php if (!empty($order['rdv_time'])): ?>
+                                            <span class="rdv-time-badge mt-1"><i class="bi bi-clock me-1"></i><?= substr($order['rdv_time'], 0, 5); ?></span>
+                                        <?php endif; ?>
                                     </td>
-                                    <td class="fw-semibold cell-client" data-label="Client">
-                                        <div>
+
+                                    <!-- Клиент + что сделать -->
+                                    <td class="cell-client">
+                                        <div class="c-name">
                                             <?php if (!empty(trim($order['client_name']))): ?>
-                                                <a href="#" onclick="openClientModal('edit_client.php?id=<?= (int)$order['client_id']; ?>&modal=1', 'Modifier le client', 'bg-primary'); return false;" class="text-decoration-none text-dark" title="Modifier le client">
-                                                    <?= htmlspecialchars(trim($order['client_name'])); ?>
-                                                </a>
+                                                <a href="#" onclick="openClientModal('edit_client.php?id=<?= (int)$order['client_id']; ?>&modal=1', 'Modifier le client', 'bg-primary'); return false;" title="Modifier le client"><?= htmlspecialchars(trim($order['client_name'])); ?></a>
                                             <?php else: ?>
                                                 <span class="text-muted">—</span>
                                             <?php endif; ?>
-
                                             <?php if (!empty(trim($order['client_notes'] ?? ''))): ?>
-                                                <i class="bi bi-exclamation-circle-fill text-danger ms-1" style="cursor: pointer;" title="Client note: <?= htmlspecialchars($order['client_notes']); ?>"></i>
-                                            <?php endif; ?>
-
-                                            <?php if (!empty($order['client_telephone']) || !empty($order['client_adresse'])): ?>
-                                                <div class="small text-muted fw-normal mt-1">
-                                                    <?php if (!empty($order['client_telephone'])): ?>
-                                                        <div>
-                                                            <i class="bi bi-telephone me-1 text-primary"></i>
-                                                            <a href="tel:<?= htmlspecialchars($order['client_telephone']); ?>" class="text-decoration-none text-muted">
-                                                                <?= htmlspecialchars($order['client_telephone']); ?>
-                                                            </a>
-                                                        </div>
-                                                    <?php endif; ?>
-                                                    <?php if (!empty($order['client_adresse'])): ?>
-                                                        <div>
-                                                            <i class="bi bi-geo-alt me-1 text-danger"></i>
-                                                            <a href="https://www.google.com/maps/search/?api=1&query=<?= urlencode($order['client_adresse']); ?>" target="_blank" class="text-decoration-none text-muted">
-                                                                <?= htmlspecialchars($order['client_adresse']); ?>
-                                                            </a>
-                                                        </div>
-                                                    <?php endif; ?>
-                                                </div>
+                                                <i class="bi bi-exclamation-circle-fill text-danger ms-1" title="<?= htmlspecialchars($order['client_notes']); ?>"></i>
                                             <?php endif; ?>
                                         </div>
-                                    </td>
-                                    <td class="cell-plat" data-label="Plateforme"><span class="badge <?= $platBadgeClass; ?>"><?= htmlspecialchars($platformName); ?></span></td>
-                                    <td class="cell-facture<?= empty($order['facture_number']) ? ' is-empty' : ''; ?>" data-label="Facture"><?= !empty($order['facture_number']) ? '<i class="bi bi-receipt me-1 text-muted d-md-none"></i>' . htmlspecialchars($order['facture_number']) : '<span class="text-muted">—</span>'; ?></td>
-                                    <td class="cell-paie<?= empty($order['payment_method_name']) ? ' is-empty' : ''; ?>" data-label="Paiement"><?= !empty($order['payment_method_name']) ? '<i class="bi bi-credit-card me-1 text-muted d-md-none"></i>' . htmlspecialchars($order['payment_method_name']) : '<span class="text-muted">—</span>'; ?></td>
-                                    <td class="text-end fw-bold cell-montant" data-label="Montant"><?= number_format($montant, 2, ',', ' '); ?> €</td>
-                                    <td class="text-center text-nowrap cell-taxe" data-label="Taxe">
-                                        <?php if ($impotAmount > 0): ?>
-                                            <?php if (!empty($order['impot_paye'])): ?>
-                                                <span class="badge bg-success" title="Налог оплачен">
-                                                    <i class="bi bi-check-all me-1"></i><?= number_format($impotAmount, 2, ',', ' '); ?> €
-                                                </span>
-                                            <?php else: ?>
-                                                <span class="text-primary fw-semibold" title="Налог не оплачен">
-                                                    <i class="bi bi-clock me-1"></i><?= number_format($impotAmount, 2, ',', ' '); ?> €
-                                                </span>
+                                        <div class="c-contact">
+                                            <?php if (!empty($order['client_telephone'])): ?>
+                                                <span><i class="bi bi-telephone text-primary me-1"></i><a href="tel:<?= preg_replace('/[^\d+]/', '', $order['client_telephone']); ?>"><?= htmlspecialchars($order['client_telephone']); ?></a></span>
                                             <?php endif; ?>
-                                        <?php else: ?>
-                                            <span class="text-muted">0,00 €</span>
-                                        <?php endif; ?>
-                                    </td>
-                                    <td class="text-center text-nowrap cell-cumul" data-label="Cumul">
-                                        <?php if ($epargneAmount > 0): ?>
-                                            <?php if (!empty($order['epargne_paye'])): ?>
-                                                <span class="badge bg-success" title="Накопления переведены">
-                                                    <i class="bi bi-check-all me-1"></i><?= number_format($epargneAmount, 2, ',', ' '); ?> €
-                                                </span>
-                                            <?php else: ?>
-                                                <span class="text-primary fw-semibold" title="Накопления не переведены">
-                                                    <i class="bi bi-clock me-1"></i><?= number_format($epargneAmount, 2, ',', ' '); ?> €
-                                                </span>
-                                            <?php endif; ?>
-                                        <?php else: ?>
-                                            <span class="text-muted">0,00 €</span>
-                                        <?php endif; ?>
-                                    </td>
-                                    <td class="text-center cell-status" data-label="Statut">
-                                        <div>
-                                            <span class="badge <?= $isCancelled ? 'bg-danger' : $statusBadge; ?>">
-                                                <?= htmlspecialchars($statusLabel); ?>
-                                            </span>
-                                            <?php if (!empty($order['date_paiement'])): ?>
-                                                <div class="small text-success mt-1 text-nowrap">
-                                                    <i class="bi bi-calendar-check me-1"></i><?= date('d.m.Y', strtotime($order['date_paiement'])); ?>
-                                                </div>
+                                            <?php if (!empty($order['client_adresse'])): ?>
+                                                <span><i class="bi bi-geo-alt text-danger me-1"></i><a href="https://www.google.com/maps/search/?api=1&query=<?= urlencode($order['client_adresse']); ?>" target="_blank"><?= htmlspecialchars($order['client_adresse']); ?></a></span>
                                             <?php endif; ?>
                                         </div>
-                                    </td>
-                                </tr>
-
-                                <tr class="order-divider order-notes <?= $rowStatusClass; ?>">
-                                    <td colspan="12" class="pt-0 pb-2 ps-4 small" style="color: #2b2b2b; <?= !$hasNotes ? 'display: none;' : ''; ?>">
-                                        <?php if (!empty($order['commentaire'])): ?>
-                                            <span class="note-comment me-2 d-inline-block px-2 py-1 rounded">
-                                                <i class="bi bi-chat-left-text text-primary me-1"></i>
-                                                <strong class="text-dark">Commentaire:</strong>
-                                                <?= htmlspecialchars($order['commentaire']); ?>
-                                            </span>
+                                        <?php if ($hasNotes): ?>
+                                            <div class="c-job">
+                                                <?php if (!empty($order['commentaire'])): ?>
+                                                    <div class="c-comment"><i class="bi bi-tools me-1"></i><?= htmlspecialchars($order['commentaire']); ?></div>
+                                                <?php endif; ?>
+                                                <?php if (!empty($order['notes'])): ?>
+                                                    <div class="c-note"><i class="bi bi-journal-text me-1"></i><?= htmlspecialchars($order['notes']); ?></div>
+                                                <?php endif; ?>
+                                            </div>
                                         <?php endif; ?>
-                                        <?php if (!empty($order['notes'])): ?>
-                                            <span class="note-info d-inline-block px-2 py-1 rounded">
-                                                <i class="bi bi-journal-text text-success me-1"></i>
-                                                <strong class="text-dark">Notes:</strong>
-                                                <?= htmlspecialchars($order['notes']); ?>
-                                            </span>
+                                    </td>
+
+                                    <!-- Заказ: номер, платформа, оплата, счёт -->
+                                    <td class="cell-order">
+                                        <div class="o-id"><?= htmlspecialchars($order['id_commande']); ?></div>
+                                        <div class="o-tags">
+                                            <span class="badge <?= $platBadgeClass; ?>"><?= htmlspecialchars($platformName); ?></span>
+                                        </div>
+                                        <?php if (!empty($order['payment_method_name'])): ?>
+                                            <div class="o-line"><i class="bi bi-credit-card me-1"></i><?= htmlspecialchars($order['payment_method_name']); ?></div>
+                                        <?php endif; ?>
+                                        <?php if (!empty($order['facture_number'])): ?>
+                                            <div class="o-line"><i class="bi bi-receipt me-1"></i><?= htmlspecialchars($order['facture_number']); ?></div>
+                                        <?php endif; ?>
+                                    </td>
+
+                                    <!-- Деньги -->
+                                    <td class="cell-money text-end">
+                                        <div class="m-amount"><?= number_format($montant, 2, ',', ' '); ?> €</div>
+                                        <?php if ($impotAmount > 0 || $epargneAmount > 0): ?>
+                                            <div class="m-chips">
+                                                <?php if ($impotAmount > 0): ?>
+                                                    <span class="t-chip <?= !empty($order['impot_paye']) ? 'is-done' : 'is-todo'; ?>" title="<?= !empty($order['impot_paye']) ? 'Taxe payée' : 'Taxe à payer'; ?>">
+                                                        <span><i class="bi <?= !empty($order['impot_paye']) ? 'bi-check-all' : 'bi-clock'; ?>"></i> Taxe</span><span class="t-val"><?= number_format($impotAmount, 2, ',', ' '); ?> €</span>
+                                                    </span>
+                                                <?php endif; ?>
+                                                <?php if ($epargneAmount > 0): ?>
+                                                    <span class="t-chip <?= !empty($order['epargne_paye']) ? 'is-done' : 'is-todo'; ?>" title="<?= !empty($order['epargne_paye']) ? 'Cumul transféré' : 'Cumul à transférer'; ?>">
+                                                        <span><i class="bi <?= !empty($order['epargne_paye']) ? 'bi-check-all' : 'bi-clock'; ?>"></i> Cumul</span><span class="t-val"><?= number_format($epargneAmount, 2, ',', ' '); ?> €</span>
+                                                    </span>
+                                                <?php endif; ?>
+                                            </div>
+                                        <?php endif; ?>
+                                    </td>
+
+                                    <!-- Статус -->
+                                    <td class="cell-status text-center">
+                                        <span class="badge <?= $isCancelled ? 'bg-danger' : $statusBadge; ?>"><?= htmlspecialchars($statusLabel); ?></span>
+                                        <?php if (!empty($order['date_paiement'])): ?>
+                                            <div class="small text-success mt-1 text-nowrap">
+                                                <i class="bi bi-calendar-check me-1"></i><?= date('d.m.Y', strtotime($order['date_paiement'])); ?>
+                                            </div>
                                         <?php endif; ?>
                                     </td>
                                 </tr>
@@ -1054,17 +1082,15 @@ require_once 'header.php';
                         <?php if (!empty($commandes)): ?>
                             <tfoot class="table-header-custom">
                             <tr class="totals-row">
-                                <td colspan="7" class="text-end cell-total-title">Total:</td>
-                                <td class="text-end fs-6" data-label="Montant">
+                                <td colspan="5" class="text-end">
+                                    <span class="tot-sub">Taxe : <b><?= number_format($total_impot, 2, ',', ' '); ?> €</b></span>
+                                    <span class="tot-sub">Cumul : <b><?= number_format($total_epargne, 2, ',', ' '); ?> €</b></span>
+                                    <strong class="ms-3">Total :</strong>
+                                </td>
+                                <td class="text-end">
                                     <span class="totals-badge"><?= number_format($total_montant, 2, ',', ' '); ?> €</span>
                                 </td>
-                                <td class="text-center" data-label="Taxe">
-                                    <span class="totals-badge"><?= number_format($total_impot, 2, ',', ' '); ?> €</span>
-                                </td>
-                                <td class="text-center" data-label="Cumul">
-                                    <span class="totals-badge"><?= number_format($total_epargne, 2, ',', ' '); ?> €</span>
-                                </td>
-                                <td colspan="2" class="cell-empty"></td>
+                                <td></td>
                             </tr>
                             </tfoot>
                         <?php endif; ?>
@@ -1382,12 +1408,9 @@ require_once 'header.php';
 
         const row = document.getElementById('order-' + targetId);
         if (row && row.offsetParent !== null) {
-            const noteRow = row.nextElementSibling; // строка с заметками
             row.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            [row, noteRow].forEach(r => r && r.classList.add('row-just-saved'));
-            setTimeout(() => {
-                [row, noteRow].forEach(r => r && r.classList.remove('row-just-saved'));
-            }, 2500);
+            row.classList.add('row-just-saved');
+            setTimeout(() => row.classList.remove('row-just-saved'), 2500);
         }
 
         // чистим адрес, чтобы при F5 не прокручивало повторно
