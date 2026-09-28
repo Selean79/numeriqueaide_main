@@ -240,23 +240,91 @@ require_once 'header.php';
     .day-title .count { font-weight: 600; color: #9ca3af; margin-left: 6px; }
 
     .intervention {
-        display: grid;
-        grid-template-columns: 72px 1fr auto;
-        gap: 12px;
-        padding: 12px 18px;
+        padding: 14px 18px;
         border-top: 1px solid #f1f3f5;
-        align-items: start;
     }
     .intervention:hover { background: #fafbfc; }
-    .rdv-time-badge { background-color: #dbeafe; color: #1e40af; padding: 3px 8px; border-radius: 6px; font-weight: 700; display: inline-block; font-size: .95rem; }
-    .intervention .client { font-weight: 700; font-size: 1.02rem; }
-    .intervention .meta a { color: #4b5563; text-decoration: none; }
-    .intervention .meta a:hover { text-decoration: underline; }
-    .intervention .meta div { margin-top: 2px; }
-    .intervention .job { margin-top: 6px; font-size: .92rem; }
-    .intervention .job .comment { color: #1f2937; font-weight: 600; }
-    .intervention .job .note { color: #92400e; }
-    .intervention .right { text-align: right; white-space: nowrap; }
+
+    /* Шапка карточки: время · клиент · сумма */
+    .iv-head {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+    .rdv-time-badge {
+        background-color: #dbeafe;
+        color: #1e40af;
+        padding: 4px 10px;
+        border-radius: 8px;
+        font-weight: 700;
+        font-size: .95rem;
+        min-width: 58px;
+        text-align: center;
+        flex-shrink: 0;
+    }
+    .rdv-time-badge.is-empty { background: #f1f3f5; color: #9ca3af; }
+    .iv-client {
+        flex: 1;
+        min-width: 0;
+        font-weight: 700;
+        font-size: 1.05rem;
+        color: #111827;
+        overflow-wrap: anywhere;
+    }
+    .iv-amount {
+        text-align: right;
+        white-space: nowrap;
+        line-height: 1.25;
+    }
+    .iv-amount .badge { font-size: .7rem; }
+
+    /* Содержимое — под именем клиента */
+    .iv-content { padding-left: 70px; margin-top: 6px; }
+
+    .iv-client-note {
+        font-size: .85rem;
+        color: #b91c1c;
+        margin-bottom: 6px;
+    }
+    .iv-address {
+        display: flex;
+        gap: 8px;
+        font-size: .9rem;
+        color: #374151;
+    }
+    .iv-address > .bi { color: #dc3545; margin-top: 2px; }
+    .iv-address-extra { color: #6b7280; font-size: .85rem; }
+
+    .iv-job {
+        margin-top: 8px;
+        padding-top: 8px;
+        border-top: 1px dashed #e5e7eb;
+    }
+    .iv-comment { font-weight: 600; color: #111827; }
+    .iv-comment .bi { color: #0d6efd; }
+    .iv-note {
+        display: inline-block;
+        margin-top: 4px;
+        padding: 3px 8px;
+        border-radius: 6px;
+        background: #fdf3cf;
+        color: #78350f;
+        font-size: .85rem;
+    }
+
+    .iv-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-top: 10px;
+    }
+
+    @media (max-width: 575.98px) {
+        .intervention { padding: 12px 14px; }
+        .iv-content { padding-left: 0; margin-top: 8px; }
+        .iv-actions .btn { flex: 1 1 auto; }
+        .iv-actions .btn.ms-auto { flex: 0 0 auto; }
+    }
 
     /* À régulariser */
     .late-row {
@@ -282,8 +350,6 @@ require_once 'header.php';
     .trend-down { background: #fdecec; color: #b91c1c; }
 
     @media (max-width: 575.98px) {
-        .intervention { grid-template-columns: 1fr; gap: 6px; }
-        .intervention .right { text-align: left; }
         .stat-cards .fs-3 { font-size: 1.35rem !important; }
     }
 </style>
@@ -372,51 +438,79 @@ require_once 'header.php';
                             </div>
 
                             <?php foreach ($orders as $o): ?>
-                                <?php $clientName = trim($o['client_name']) ?: '—'; ?>
+                                <?php
+                                $clientName  = trim($o['client_name']) ?: '—';
+                                $clientNote  = trim($o['client_notes'] ?? '');
+                                $adresse2    = trim(preg_replace('/\s+/', ' ', $o['adresse_2'] ?? ''));
+                                $phoneDigits = preg_replace('/[^\d+]/', '', $o['telephone'] ?? '');
+                                ?>
                                 <div class="intervention">
-                                    <div>
+                                    <!-- Время · клиент · сумма -->
+                                    <div class="iv-head">
                                         <?php if (!empty($o['rdv_time'])): ?>
                                             <span class="rdv-time-badge"><?= substr($o['rdv_time'], 0, 5); ?></span>
                                         <?php else: ?>
-                                            <span class="text-muted">—:—</span>
+                                            <span class="rdv-time-badge is-empty">—:—</span>
                                         <?php endif; ?>
+
+                                        <div class="iv-client"><?= htmlspecialchars($clientName); ?></div>
+
+                                        <div class="iv-amount">
+                                            <div class="fw-bold"><?= euro((float)$o['montant']); ?></div>
+                                            <span class="badge <?= platformBadge($o['platform_name']); ?>"><?= htmlspecialchars($o['platform_name']); ?></span>
+                                        </div>
                                     </div>
 
-                                    <div>
-                                        <div class="client">
-                                            <?= htmlspecialchars($clientName); ?>
-                                            <?php if (!empty(trim($o['client_notes'] ?? ''))): ?>
-                                                <i class="bi bi-exclamation-circle-fill text-danger ms-1" title="<?= htmlspecialchars($o['client_notes']); ?>"></i>
-                                            <?php endif; ?>
-                                        </div>
-                                        <div class="meta small">
-                                            <?php if (!empty($o['telephone'])): ?>
-                                                <div><i class="bi bi-telephone text-primary me-1"></i><a href="tel:<?= preg_replace('/[^\d+]/', '', $o['telephone']); ?>"><?= htmlspecialchars($o['telephone']); ?></a></div>
-                                            <?php endif; ?>
-                                            <?php if (!empty($o['adresse'])): ?>
-                                                <div><i class="bi bi-geo-alt text-danger me-1"></i><a href="https://www.google.com/maps/search/?api=1&query=<?= urlencode($o['adresse']); ?>" target="_blank"><?= htmlspecialchars($o['adresse']); ?></a></div>
-                                            <?php endif; ?>
-                                            <?php if (!empty(trim($o['adresse_2'] ?? ''))): ?>
-                                                <div class="text-muted"><i class="bi bi-building me-1"></i><?= htmlspecialchars(trim(preg_replace('/\s+/', ' ', $o['adresse_2']))); ?></div>
-                                            <?php endif; ?>
-                                        </div>
+                                    <div class="iv-content">
+                                        <!-- Заметка о клиенте -->
+                                        <?php if ($clientNote !== ''): ?>
+                                            <div class="iv-client-note">
+                                                <i class="bi bi-exclamation-circle-fill me-1"></i><?= htmlspecialchars($clientNote); ?>
+                                            </div>
+                                        <?php endif; ?>
+
+                                        <!-- Адрес -->
+                                        <?php if (!empty($o['adresse']) || $adresse2 !== ''): ?>
+                                            <div class="iv-address">
+                                                <i class="bi bi-geo-alt-fill"></i>
+                                                <div>
+                                                    <?php if (!empty($o['adresse'])): ?>
+                                                        <div><?= htmlspecialchars($o['adresse']); ?></div>
+                                                    <?php endif; ?>
+                                                    <?php if ($adresse2 !== ''): ?>
+                                                        <div class="iv-address-extra"><?= htmlspecialchars($adresse2); ?></div>
+                                                    <?php endif; ?>
+                                                </div>
+                                            </div>
+                                        <?php endif; ?>
+
+                                        <!-- Что сделать -->
                                         <?php if (!empty($o['commentaire']) || !empty($o['notes'])): ?>
-                                            <div class="job">
+                                            <div class="iv-job">
                                                 <?php if (!empty($o['commentaire'])): ?>
-                                                    <div class="comment"><i class="bi bi-tools me-1 text-primary"></i><?= htmlspecialchars($o['commentaire']); ?></div>
+                                                    <div class="iv-comment"><i class="bi bi-tools me-1"></i><?= htmlspecialchars($o['commentaire']); ?></div>
                                                 <?php endif; ?>
                                                 <?php if (!empty($o['notes'])): ?>
-                                                    <div class="note"><i class="bi bi-journal-text me-1"></i><?= htmlspecialchars($o['notes']); ?></div>
+                                                    <div class="iv-note"><i class="bi bi-journal-text me-1"></i><?= htmlspecialchars($o['notes']); ?></div>
                                                 <?php endif; ?>
                                             </div>
                                         <?php endif; ?>
-                                    </div>
 
-                                    <div class="right">
-                                        <div class="fw-bold"><?= euro((float)$o['montant']); ?></div>
-                                        <span class="badge <?= platformBadge($o['platform_name']); ?> mt-1"><?= htmlspecialchars($o['platform_name']); ?></span>
-                                        <div class="mt-2">
-                                            <a href="edit_commande.php?id=<?= (int)$o['id']; ?>" class="btn btn-sm btn-outline-primary" title="Modifier"><i class="bi bi-pencil"></i></a>
+                                        <!-- Действия -->
+                                        <div class="iv-actions">
+                                            <?php if ($phoneDigits !== ''): ?>
+                                                <a href="tel:<?= $phoneDigits; ?>" class="btn btn-sm btn-outline-primary">
+                                                    <i class="bi bi-telephone me-1"></i><?= htmlspecialchars($o['telephone']); ?>
+                                                </a>
+                                            <?php endif; ?>
+                                            <?php if (!empty($o['adresse'])): ?>
+                                                <a href="https://www.google.com/maps/dir/?api=1&destination=<?= urlencode($o['adresse']); ?>" target="_blank" class="btn btn-sm btn-outline-secondary">
+                                                    <i class="bi bi-sign-turn-right me-1"></i>Itinéraire
+                                                </a>
+                                            <?php endif; ?>
+                                            <a href="edit_commande.php?id=<?= (int)$o['id']; ?>" class="btn btn-sm btn-light ms-auto" title="Modifier">
+                                                <i class="bi bi-pencil"></i>
+                                            </a>
                                         </div>
                                     </div>
                                 </div>
