@@ -237,7 +237,20 @@ require_once 'header.php';
         border-top: 1px solid #b7e4c4;
         border-bottom: 1px solid #b7e4c4;
     }
+    .day-title { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+    .day-title .day-total {
+        text-transform: none;
+        letter-spacing: 0;
+        font-size: .92rem;
+        font-weight: 800;
+        color: #14532d;
+        background: rgba(255, 255, 255, .7);
+        padding: 2px 10px;
+        border-radius: 999px;
+        white-space: nowrap;
+    }
     .day-title.is-today { color: #052e16; background: #82e89e; border-color: #6fd98c; }
+    .day-title.is-today .day-total { background: #ffffff; color: #052e16; }
     .day-title .count { font-weight: 600; color: #3f7a52; margin-left: 6px; }
     .day-title.is-today .count { color: #14532d; }
 
@@ -445,9 +458,13 @@ require_once 'header.php';
                         <?php endif; ?>
 
                         <?php foreach ($next_by_day as $day => $orders): ?>
+                            <?php $dayTotal = array_sum(array_map(fn($x) => (float)$x['montant'], $orders)); ?>
                             <div class="day-title <?= $day === $today ? 'is-today' : ''; ?>">
-                                <?= dayLabel($day, $fr_days); ?>
-                                <span class="count">· <?= count($orders); ?> intervention<?= count($orders) > 1 ? 's' : ''; ?></span>
+                                <span>
+                                    <?= dayLabel($day, $fr_days); ?>
+                                    <span class="count">· <?= count($orders); ?> intervention<?= count($orders) > 1 ? 's' : ''; ?></span>
+                                </span>
+                                <span class="day-total"><?= euro($dayTotal); ?></span>
                             </div>
 
                             <?php foreach ($orders as $o): ?>
