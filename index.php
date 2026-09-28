@@ -250,6 +250,13 @@ require_once 'header.php';
         white-space: nowrap;
     }
     .day-title.is-today { color: #052e16; background: #82e89e; border-color: #6fd98c; }
+
+    /* Сворачиваемые дни */
+    summary.day-title { cursor: pointer; list-style: none; user-select: none; }
+    summary.day-title::-webkit-details-marker { display: none; }
+    summary.day-title:hover { filter: brightness(.97); }
+    .day-chevron { display: inline-block; margin-right: 6px; font-size: .8rem; transition: transform .2s; }
+    details[open] > summary .day-chevron { transform: rotate(90deg); }
     .day-title.is-today .day-total { background: #ffffff; color: #052e16; }
     .day-title .count { font-weight: 600; color: #3f7a52; margin-left: 6px; }
     .day-title.is-today .count { color: #14532d; }
@@ -459,13 +466,16 @@ require_once 'header.php';
 
                         <?php foreach ($next_by_day as $day => $orders): ?>
                             <?php $dayTotal = array_sum(array_map(fn($x) => (float)$x['montant'], $orders)); ?>
-                            <div class="day-title <?= $day === $today ? 'is-today' : ''; ?>">
+                            <!-- Сегодня — раскрыт, остальные дни — свёрнуты -->
+                            <details class="day-group" <?= $day === $today ? 'open' : ''; ?>>
+                            <summary class="day-title <?= $day === $today ? 'is-today' : ''; ?>">
                                 <span>
+                                    <i class="bi bi-chevron-right day-chevron"></i>
                                     <?= dayLabel($day, $fr_days); ?>
                                     <span class="count">· <?= count($orders); ?> intervention<?= count($orders) > 1 ? 's' : ''; ?></span>
                                 </span>
                                 <span class="day-total"><?= euro($dayTotal); ?></span>
-                            </div>
+                            </summary>
 
                             <?php foreach ($orders as $o): ?>
                                 <?php
@@ -548,6 +558,7 @@ require_once 'header.php';
                                     </div>
                                 </div>
                             <?php endforeach; ?>
+                            </details>
                         <?php endforeach; ?>
                     <?php endif; ?>
                 </div>
